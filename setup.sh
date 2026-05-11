@@ -47,6 +47,11 @@ read -p "Senha de App (xxxx xxxx xxxx xxxx): " EMAIL_PASS
 read -p "Email do admin: " EMAIL_ADMIN
 echo ""
 
+echo -e "${BLUE}━━━ CLOUDINARY (upload de imagens) ━━━${NC}"
+read -p "Cloud Name (ex: drpfwdjfg): " CLOUDINARY_CLOUD_NAME
+read -p "Upload Preset (ex: jcgames_upload): " CLOUDINARY_PRESET
+echo ""
+
 echo -e "${BLUE}━━━ PAGBANK ━━━${NC}"
 read -p "Token PagBank: " PAGBANK_TOKEN
 echo "  1) sandbox (testes)"
@@ -95,6 +100,8 @@ services:
       EMAIL_PASS: "$EMAIL_PASS"
       EMAIL_ADMIN: $EMAIL_ADMIN
       API_URL: $API_URL
+      CLOUDINARY_CLOUD_NAME: $CLOUDINARY_CLOUD_NAME
+      CLOUDINARY_PRESET: $CLOUDINARY_PRESET
       PAGBANK_TOKEN: $PAGBANK_TOKEN
       PAGBANK_ENV: "$PAGBANK_ENV"
   frontend:
@@ -135,6 +142,11 @@ EMAIL
 Conta:        $EMAIL_USER
 Senha de App: $EMAIL_PASS
 Admin:        $EMAIL_ADMIN
+
+CLOUDINARY
+----------
+Cloud Name: $CLOUDINARY_CLOUD_NAME
+Preset:     $CLOUDINARY_PRESET
 
 PAGBANK
 -------

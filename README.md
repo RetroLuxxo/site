@@ -354,3 +354,19 @@ Projeto desenvolvido por **Jeverson Dias da Silva**
 ## 📄 Licença
 
 MIT — use à vontade!
+
+## 🖼️ Upload de Imagens (Cloudinary)
+
+As imagens dos produtos são hospedadas no Cloudinary (gratuito até 25GB).
+
+**Configuração:**
+1. Crie conta em [cloudinary.com](https://cloudinary.com)
+2. Anote o **Cloud Name** no dashboard
+3. Vá em Settings → Upload → Upload Presets → Add Upload Preset
+4. Defina como **Unsigned** e salve o nome do preset
+5. Informe os dados durante o `bash setup.sh`
+
+**Uso:**
+- No painel admin, ao cadastrar ou editar produto, clique em **📤 Upload**
+- Selecione a imagem — ela vai direto para o Cloudinary
+- A URL é preenchida automaticamente
