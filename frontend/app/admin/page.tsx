@@ -21,6 +21,21 @@ export default function Admin() {
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [enviandoStatus, setEnviandoStatus] = useState(false);
   const [novoProduto, setNovoProduto] = useState({ nome: "", descricao: "", preco: "", imagem_url: "", estoque: "", peso_kg: "0.5", comprimento_cm: "15", largura_cm: "15", altura_cm: "15" });
+  const [uploadando, setUploadando] = useState(false);
+
+  const uploadImagem = async (file: File, callback: (url: string) => void) => {
+    setUploadando(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", "jcgames_upload");
+      const r = await fetch("https://api.cloudinary.com/v1_1/drpfwdjfg/image/upload", { method: "POST", body: fd });
+      const d = await r.json();
+      if (d.secure_url) callback(d.secure_url);
+      else showMsg("❌ Erro no upload");
+    } catch { showMsg("❌ Erro no upload"); }
+    finally { setUploadando(false); }
+  };
   const [showNovoProduto, setShowNovoProduto] = useState(false);
 
   // Botão voltar fecha detalhes abertos em vez de sair
@@ -328,7 +343,14 @@ export default function Admin() {
                   <input placeholder="Preço *" type="number" value={novoProduto.preco} onChange={(e) => setNovoProduto({...novoProduto,preco:e.target.value})} className={inp}/>
                   <input placeholder="Estoque *" type="number" value={novoProduto.estoque} onChange={(e) => setNovoProduto({...novoProduto,estoque:e.target.value})} className={inp}/>
                 </div>
-                <input placeholder="URL da Imagem *" value={novoProduto.imagem_url} onChange={(e) => setNovoProduto({...novoProduto,imagem_url:e.target.value})} className={inp}/>
+                <div className="flex gap-2 items-center">
+                  <input placeholder="URL da Imagem *" value={novoProduto.imagem_url} onChange={(e) => setNovoProduto({...novoProduto,imagem_url:e.target.value})} className={inp}/>
+                  <label className="cursor-pointer bg-purple-700 hover:bg-purple-600 px-3 py-3 rounded-xl text-xs font-black whitespace-nowrap transition-all flex-shrink-0">
+                    {uploadando?"⏳":"📤 Upload"}
+                    <input type="file" accept="image/*" className="hidden" onChange={e=>e.target.files&&uploadImagem(e.target.files[0],url=>setNovoProduto({...novoProduto,imagem_url:url}))}/>
+                  </label>
+                </div>
+                {novoProduto.imagem_url&&<img src={novoProduto.imagem_url} alt="preview" className="w-24 h-24 object-contain rounded-xl bg-black/40 p-1"/>}
                 <div className="flex gap-3">
                   <button onClick={criarProduto} className="bg-emerald-600 hover:bg-emerald-500 px-5 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Criar</button>
                   <button onClick={() => setShowNovoProduto(false)} className="bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Cancelar</button>
@@ -348,7 +370,14 @@ export default function Admin() {
                         <input type="number" value={produtoEditando.preco} onChange={(e) => setProdutoEditando({...produtoEditando,preco:parseFloat(e.target.value)})} className={inp} placeholder="Preço"/>
                         <input type="number" value={produtoEditando.estoque} onChange={(e) => setProdutoEditando({...produtoEditando,estoque:parseInt(e.target.value)})} className={inp} placeholder="Estoque"/>
                       </div>
+                      <div className="flex gap-2 items-center">
                       <input value={produtoEditando.imagem_url} onChange={(e) => setProdutoEditando({...produtoEditando,imagem_url:e.target.value})} className={inp} placeholder="URL Imagem"/>
+                      <label className="cursor-pointer bg-purple-700 hover:bg-purple-600 px-3 py-3 rounded-xl text-xs font-black whitespace-nowrap transition-all flex-shrink-0">
+                        {uploadando?"⏳":"📤 Upload"}
+                        <input type="file" accept="image/*" className="hidden" onChange={e=>e.target.files&&uploadImagem(e.target.files[0],url=>setProdutoEditando({...produtoEditando,imagem_url:url}))}/>
+                      </label>
+                    </div>
+                    {produtoEditando.imagem_url&&<img src={produtoEditando.imagem_url} alt="preview" className="w-24 h-24 object-contain rounded-xl bg-black/40 p-1"/>}
                       <div className="flex gap-2">
                         <button onClick={salvarProduto} className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-xl font-black text-xs btn-press">Salvar</button>
                         <button onClick={() => setProdutoEditando(null)} className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl font-black text-xs btn-press">Cancelar</button>
