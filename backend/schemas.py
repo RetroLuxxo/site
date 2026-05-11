@@ -111,11 +111,25 @@ class Endereco(EnderecoCreate):
     class Config:
         from_attributes = True
 
+class AvaliacaoCreate(BaseModel):
+    nome: str = "Anônimo"
+    estrelas: int = 5
+    comentario: str = ""
+    usuario_id: Optional[int] = None
+
+class Avaliacao(AvaliacaoCreate):
+    id: int
+    produto_id: int
+    aprovado: bool = True
+    class Config:
+        from_attributes = True
+
 class ProdutoBase(BaseModel):
     nome: str
     descricao: str
     preco: float
     imagem_url: str
+    fotos: Optional[List[str]] = []
     estoque: int
     peso_kg: float = 0.5
     comprimento_cm: int = 15

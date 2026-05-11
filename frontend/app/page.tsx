@@ -289,12 +289,12 @@ export default function Home() {
 
                 <div className="relative h-44 sm:h-52 overflow-hidden crt-img-area" style={{background:"#ffffff"}}>
                   <div className="crt-scanline-img"/>
-                  <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500"/>
+                  <a href={`/produto/${p.id}`}><img src={p.imagem_url} alt={p.nome} className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500"/></a>
                   {p.estoque===0&&<div className="absolute inset-0 bg-black/70 flex items-center justify-center"><span className="text-red-400 font-black text-xs tracking-widest uppercase bg-black/60 px-3 py-1 rounded-full">Esgotado</span></div>}
                   {p.estoque>0&&p.estoque<=3&&<div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">Últimas {p.estoque}!</div>}
                 </div>
                 <div className="p-3 sm:p-4">
-                  <h3 className="text-xs sm:text-sm font-semibold text-gray-200 line-clamp-2 leading-tight mb-3 min-h-[2.5rem]">{p.nome}</h3>
+                  <a href={`/produto/${p.id}`} className="block text-xs sm:text-sm font-semibold text-gray-200 line-clamp-2 leading-tight mb-3 min-h-[2.5rem] hover:text-purple-400 transition-all">{p.nome}</a>
                   <div className="mb-3">
                     <p className="text-[9px] text-purple-400/70 font-bold uppercase tracking-widest">PIX</p>
                     <p className="text-lg sm:text-xl font-black text-green-400 crt-price">R$ {p.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>

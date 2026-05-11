@@ -32,11 +32,22 @@ class Produto(Base):
     descricao = Column(Text)
     preco = Column(Float)
     imagem_url = Column(String)
+    fotos = Column(JSON, default=list)
     estoque = Column(Integer, default=0)
     peso_kg = Column(Float, default=0.5)
     comprimento_cm = Column(Integer, default=15)
     largura_cm = Column(Integer, default=15)
     altura_cm = Column(Integer, default=15)
+
+class Avaliacao(Base):
+    __tablename__ = "avaliacoes"
+    id = Column(Integer, primary_key=True, index=True)
+    produto_id = Column(Integer, ForeignKey("produtos.id"))
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    nome = Column(String, default="Anônimo")
+    estrelas = Column(Integer, default=5)
+    comentario = Column(Text, default="")
+    aprovado = Column(Boolean, default=True)
 
 class CartItem(Base):
     __tablename__ = "cart_items"

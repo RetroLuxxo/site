@@ -514,3 +514,26 @@ def pagar_cartao(dados: dict, db: Session = Depends(get_db)):
     if r.status_code not in [200, 201]:
         raise HTTPException(status_code=400, detail=str(data.get("error_messages", data)))
     return {"order_id": data.get("id"), "status": data.get("charges", [{}])[0].get("status"), "total": pedido.total, "parcelas": parcelas}
+
+# ============================================================
+# AVALIAÇÕES
+# ============================================================
+@app.get("/produtos/{produto_id}/avaliacoes")
+def listar_avaliacoes(produto_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Avaliacao).filter(models.Avaliacao.produto_id == produto_id, models.Avaliacao.aprovado == True).all()
+
+@app.post("/produtos/{produto_id}/avaliacoes")
+def criar_avaliacao(produto_id: int, dados: dict, db: Session = Depends(get_db)):
+    if not 1 <= dados.get("estrelas", 5) <= 5:
+        raise HTTPException(status_code=400, detail="Estrelas deve ser entre 1 e 5")
+    av = models.Avaliacao(produto_id=produto_id, nome=dados.get("nome","Anônimo"), estrelas=dados.get("estrelas",5), comentario=dados.get("comentario",""), usuario_id=dados.get("usuario_id"))
+    db.add(av); db.commit(); db.refresh(av)
+    return av
+
+@app.put("/produtos/{produto_id}/fotos")
+def atualizar_fotos(produto_id: int, dados: dict, token: str = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    p = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
+    if not p: raise HTTPException(status_code=404, detail="Produto não encontrado")
+    p.fotos = dados.get("fotos", [])
+    db.commit(); db.refresh(p)
+    return p
