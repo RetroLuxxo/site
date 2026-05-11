@@ -190,8 +190,19 @@ export default function Home() {
         .slide-in{animation:slideIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards}
         .slide-up{animation:slideUp 0.3s ease forwards}
         .btn-press:active{transform:scale(0.97)}
-        .card-h{transition:transform 0.2s ease,box-shadow 0.2s ease}
-        .card-h:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+        .card-h{transition:transform 0.2s ease;position:relative;overflow:hidden}
+        .card-h:hover{transform:translateY(-3px)}
+        .crt-img-area::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);pointer-events:none;z-index:2;opacity:1}
+        .crt-img-area::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.35) 100%);pointer-events:none;z-index:3;opacity:1}
+        .crt-scanline-img{position:absolute;width:100%;height:3px;background:linear-gradient(90deg,transparent,rgba(139,47,201,0.5),transparent);z-index:6;pointer-events:none;top:-3px;opacity:0}
+        .card-h:hover .crt-scanline-img{animation:scan 3s linear infinite;opacity:1}
+        .crt-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(139,47,201,0.15) 0%,transparent 70%);z-index:1;opacity:0;transition:opacity 0.3s;pointer-events:none}
+        .card-h:hover .crt-glow{opacity:1}
+        .crt-price{text-shadow:0 0 8px rgba(57,255,20,0.4);transition:text-shadow 0.3s}
+        .card-h:hover .crt-price{text-shadow:0 0 16px rgba(57,255,20,0.7)}
+        @keyframes scan{0%{top:-3px;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+        @keyframes flicker{0%,97%,100%{opacity:0}98%{opacity:0.03}99%{opacity:0}}
+        .crt-flicker{position:absolute;inset:0;z-index:4;pointer-events:none;animation:flicker 8s infinite;opacity:0;background:rgba(255,255,255,0.05)}
         .glass-header{background:rgba(10,0,20,0.90);backdrop-filter:blur(20px);border-bottom:1px solid rgba(139,47,201,0.2)}
         .glass-sidebar{background:rgba(10,0,20,0.97);backdrop-filter:blur(20px);border-left:1px solid rgba(139,47,201,0.2)}
         .glass-modal{background:rgba(12,0,24,0.97);backdrop-filter:blur(24px);border:1px solid rgba(139,47,201,0.25)}
@@ -264,8 +275,10 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {produtosFiltrados.map((p,i)=>(
               <div key={p.id} className={`glass-card glass-card-hover rounded-2xl overflow-hidden card-h group ${p.estoque===0?"opacity-50":""}`} style={{animation:`fadeIn 0.4s ease forwards`,animationDelay:`${Math.min(i*0.04,0.5)}s`,opacity:0}}>
-                <div className="relative h-40 sm:h-44 bg-black/30 overflow-hidden">
-                  <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-500"/>
+
+                <div className="relative h-44 sm:h-52 overflow-hidden crt-img-area" style={{background:"#ffffff"}}>
+                  <div className="crt-scanline-img"/>
+                  <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500"/>
                   {p.estoque===0&&<div className="absolute inset-0 bg-black/70 flex items-center justify-center"><span className="text-red-400 font-black text-xs tracking-widest uppercase bg-black/60 px-3 py-1 rounded-full">Esgotado</span></div>}
                   {p.estoque>0&&p.estoque<=3&&<div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">Últimas {p.estoque}!</div>}
                 </div>
@@ -273,7 +286,7 @@ export default function Home() {
                   <h3 className="text-xs sm:text-sm font-semibold text-gray-200 line-clamp-2 leading-tight mb-3 min-h-[2.5rem]">{p.nome}</h3>
                   <div className="mb-3">
                     <p className="text-[9px] text-purple-400/70 font-bold uppercase tracking-widest">PIX</p>
-                    <p className="text-lg sm:text-xl font-black text-green-400">R$ {p.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
+                    <p className="text-lg sm:text-xl font-black text-green-400 crt-price">R$ {p.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
                     <p className="text-gray-600 text-[9px] sm:text-[10px]">12x R$ {(p.preco/12).toLocaleString("pt-BR",{maximumFractionDigits:2})}</p>
                   </div>
                   <button onClick={()=>adicionarAoCarrinho(p)} disabled={p.estoque===0} className={`w-full py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wide transition-all btn-press ${p.estoque===0?"bg-white/5 text-gray-600 cursor-not-allowed":"bg-purple-700 hover:bg-purple-600 text-white"}`}>
