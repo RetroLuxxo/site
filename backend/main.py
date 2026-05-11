@@ -1,0 +1,474 @@
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from typing import List, Optional
+import models, schemas
+from database import SessionLocal, engine
+import requests
+import bcrypt
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
+
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="JC Games Backend API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+import os
+import requests as http_requests
+
+PAGBANK_TOKEN = os.getenv("PAGBANK_TOKEN", "")
+PAGBANK_ENV = os.getenv("PAGBANK_ENV", "sandbox")
+PAGBANK_URL = "https://sandbox.api.pagseguro.com" if PAGBANK_ENV == "sandbox" else "https://api.pagseguro.com"
+PAGBANK_HEADERS = {"Authorization": f"Bearer {PAGBANK_TOKEN}", "Content-Type": "application/json"}
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+EMAIL_USER = os.getenv("EMAIL_USER", "")
+EMAIL_PASS = os.getenv("EMAIL_PASS", "")
+EMAIL_ADMIN = os.getenv("EMAIL_ADMIN", "")
+
+def enviar_email(destinatario: str, assunto: str, corpo_html: str):
+    if not EMAIL_USER or not EMAIL_PASS:
+        return
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = assunto
+        msg["From"] = f"JC Games Store <{EMAIL_USER}>"
+        msg["To"] = destinatario
+        msg.attach(MIMEText(corpo_html, "html"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.sendmail(EMAIL_USER, destinatario, msg.as_string())
+            if EMAIL_ADMIN and EMAIL_ADMIN != destinatario:
+                server.sendmail(EMAIL_USER, EMAIL_ADMIN, msg.as_string())
+    except Exception as e:
+        print(f"Erro ao enviar email: {e}")
+SECRET_KEY = os.getenv("SECRET_KEY", "jcgames_secret_key_2025")
+ALGORITHM = "HS256"
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def criar_token(data: dict):
+    to_encode = data.copy()
+    to_encode.update({"exp": datetime.utcnow() + timedelta(days=30)})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_usuario_atual(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        usuario_id = payload.get("sub")
+        if not usuario_id:
+            return None
+        return db.query(models.Usuario).filter(models.Usuario.id == int(usuario_id)).first()
+    except JWTError:
+        return None
+
+@app.get("/")
+def read_root():
+    return {"status": "Online", "empresa": "JC GAMES CLÁSSICOS"}
+
+# --- AUTH ---
+@app.post("/auth/cadastro", response_model=schemas.Token)
+def cadastro(dados: schemas.UsuarioCadastro, db: Session = Depends(get_db)):
+    existente = db.query(models.Usuario).filter(models.Usuario.email == dados.email).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    senha_hash = bcrypt.hashpw(dados.senha.encode(), bcrypt.gensalt()).decode()
+    usuario = models.Usuario(
+        email=dados.email,
+        nome=dados.nome,
+        telefone=dados.telefone,
+        cpf=dados.cpf,
+        senha_hash=senha_hash
+    )
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+    token = criar_token({"sub": str(usuario.id)})
+    return {"access_token": token, "token_type": "bearer", "usuario": usuario}
+
+@app.post("/auth/login", response_model=schemas.Token)
+def login(dados: schemas.UsuarioLogin, db: Session = Depends(get_db)):
+    usuario = db.query(models.Usuario).filter(models.Usuario.email == dados.email).first()
+    if not usuario or not bcrypt.checkpw(dados.senha.encode(), usuario.senha_hash.encode()):
+        raise HTTPException(status_code=401, detail="Email ou senha inválidos")
+    token = criar_token({"sub": str(usuario.id)})
+    return {"access_token": token, "token_type": "bearer", "usuario": usuario}
+
+@app.get("/auth/me", response_model=schemas.Usuario)
+def me(usuario = Depends(get_usuario_atual)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    return usuario
+
+@app.put("/auth/me", response_model=schemas.Usuario)
+def atualizar_perfil(dados: schemas.UsuarioUpdate, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    for campo, valor in dados.model_dump(exclude_none=True).items():
+        setattr(usuario, campo, valor)
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+# --- ENDERECOS ---
+@app.get("/enderecos", response_model=List[schemas.Endereco])
+def listar_enderecos(usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    return db.query(models.Endereco).filter(models.Endereco.usuario_id == usuario.id).all()
+
+@app.post("/enderecos", response_model=schemas.Endereco)
+def salvar_endereco(endereco: schemas.EnderecoCreate, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    if endereco.principal:
+        db.query(models.Endereco).filter(models.Endereco.usuario_id == usuario.id).update({"principal": False})
+    db_end = models.Endereco(**endereco.model_dump(), usuario_id=usuario.id)
+    db.add(db_end)
+    db.commit()
+    db.refresh(db_end)
+    return db_end
+
+# --- PRODUTOS ---
+@app.get("/produtos", response_model=List[schemas.Produto])
+def listar_produtos(db: Session = Depends(get_db)):
+    return db.query(models.Produto).all()
+
+@app.post("/produtos", response_model=schemas.Produto)
+def criar_produto(produto: schemas.ProdutoCreate, db: Session = Depends(get_db)):
+    db_produto = models.Produto(**produto.model_dump())
+    db.add(db_produto)
+    db.commit()
+    db.refresh(db_produto)
+    return db_produto
+
+# --- CARRINHO ---
+@app.get("/carrinho", response_model=List[schemas.CartItem])
+def ver_carrinho(session_id: str, db: Session = Depends(get_db)):
+    return db.query(models.CartItem).filter(models.CartItem.session_id == session_id).all()
+
+@app.post("/carrinho", response_model=schemas.CartItem)
+def adicionar_ao_carrinho(item: schemas.CartItemCreate, db: Session = Depends(get_db)):
+    produto = db.query(models.Produto).filter(models.Produto.id == item.product_id).first()
+    if not produto:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    db_item = models.CartItem(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/carrinho/{item_id}")
+def remover_do_carrinho(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(models.CartItem).filter(models.CartItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Item removido"}
+
+# --- FRETE ---
+@app.get("/frete")
+def calcular_frete(cep_destino: str, db: Session = Depends(get_db)):
+    cep_limpo = cep_destino.replace("-", "").replace(".", "").strip()
+    try:
+        r = requests.get(f"https://viacep.com.br/ws/{cep_limpo}/json/", timeout=5)
+        dados_cep = r.json()
+        if "erro" in dados_cep:
+            raise HTTPException(status_code=400, detail="CEP não encontrado")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Erro ao consultar CEP")
+
+    uf = dados_cep.get("uf", "")
+    if uf == "PR":
+        opcoes = [{"nome": "PAC", "preco": 15.90, "prazo": 3}, {"nome": "SEDEX", "preco": 29.90, "prazo": 1}]
+    elif uf in ["SP", "SC", "RS"]:
+        opcoes = [{"nome": "PAC", "preco": 22.90, "prazo": 5}, {"nome": "SEDEX", "preco": 39.90, "prazo": 2}]
+    elif uf in ["RJ", "MG", "ES"]:
+        opcoes = [{"nome": "PAC", "preco": 25.90, "prazo": 6}, {"nome": "SEDEX", "preco": 44.90, "prazo": 3}]
+    else:
+        opcoes = [{"nome": "PAC", "preco": 35.90, "prazo": 10}, {"nome": "SEDEX", "preco": 59.90, "prazo": 5}]
+
+    return {"endereco": dados_cep, "opcoes_frete": opcoes}
+
+# --- PEDIDOS ---
+@app.post("/pedidos", response_model=schemas.Pedido)
+def criar_pedido(pedido: schemas.PedidoCreate, db: Session = Depends(get_db)):
+    total = sum(i.preco_unitario * i.quantidade for i in pedido.itens) + pedido.frete_preco
+    itens_json = [i.model_dump() for i in pedido.itens]
+    # Verifica estoque antes de criar pedido
+    for item in pedido.itens:
+        produto = db.query(models.Produto).filter(models.Produto.id == item.product_id).first()
+        if not produto:
+            raise HTTPException(status_code=404, detail=f"Produto #{item.product_id} não encontrado")
+        if produto.estoque < item.quantidade:
+            raise HTTPException(status_code=400, detail=f"Estoque insuficiente para {produto.nome}. Disponível: {produto.estoque}")
+
+    db_pedido = models.Pedido(
+        **{k: v for k, v in pedido.model_dump().items() if k != "itens"},
+        itens=itens_json,
+        total=total,
+        status="pendente"
+    )
+    db.add(db_pedido)
+
+    # Decrementa estoque
+    for item in pedido.itens:
+        produto = db.query(models.Produto).filter(models.Produto.id == item.product_id).first()
+        if produto:
+            produto.estoque = max(0, produto.estoque - item.quantidade)
+
+    db.commit()
+    db.refresh(db_pedido)
+
+    # Envia email de confirmação
+    itens_html = "".join([
+        f"<tr><td style='padding:8px;border-bottom:1px solid #333'>Produto #{i['product_id']}</td><td style='padding:8px;border-bottom:1px solid #333'>{i['quantidade']}x</td><td style='padding:8px;border-bottom:1px solid #333'>R$ {i['preco_unitario']:,.2f}</td></tr>"
+        for i in itens_json
+    ])
+    corpo = f"""
+    <div style="font-family:sans-serif;background:#0a0a0a;color:#fff;padding:40px;max-width:600px;margin:0 auto">
+        <h1 style="color:#3b82f6">JC GAMES <span style="color:#fff">STORE</span></h1>
+        <h2 style="color:#22c55e">✅ Pedido #{db_pedido.id} Confirmado!</h2>
+        <p>Olá <strong>{db_pedido.nome}</strong>, seu pedido foi recebido com sucesso!</p>
+        <div style="background:#161616;border-radius:12px;padding:20px;margin:20px 0">
+            <h3 style="color:#3b82f6;margin-top:0">📦 Itens do Pedido</h3>
+            <table style="width:100%;border-collapse:collapse">
+                <tr style="color:#9ca3af;font-size:12px">
+                    <th style="text-align:left;padding:8px">Produto</th>
+                    <th style="text-align:left;padding:8px">Qtd</th>
+                    <th style="text-align:left;padding:8px">Valor</th>
+                </tr>
+                {itens_html}
+            </table>
+        </div>
+        <div style="background:#161616;border-radius:12px;padding:20px;margin:20px 0">
+            <h3 style="color:#3b82f6;margin-top:0">🚚 Entrega</h3>
+            <p style="margin:4px 0">{db_pedido.endereco}, {db_pedido.numero} {db_pedido.complemento}</p>
+            <p style="margin:4px 0">{db_pedido.bairro} — {db_pedido.cidade}/{db_pedido.estado}</p>
+            <p style="margin:4px 0">CEP: {db_pedido.cep}</p>
+            <p style="margin:4px 0;color:#3b82f6"><strong>{db_pedido.frete_nome}</strong> — Prazo: {db_pedido.frete_prazo} dia(s) útil(eis)</p>
+        </div>
+        <div style="background:#161616;border-radius:12px;padding:20px;margin:20px 0">
+            <h3 style="color:#3b82f6;margin-top:0">💰 Resumo Financeiro</h3>
+            <p style="margin:4px 0">Frete: R$ {db_pedido.frete_preco:,.2f}</p>
+            <p style="margin:4px 0;font-size:20px;color:#22c55e"><strong>Total: R$ {db_pedido.total:,.2f}</strong></p>
+        </div>
+        <p style="color:#9ca3af;font-size:12px">Em caso de dúvidas responda este email. Obrigado pela preferência!</p>
+    </div>
+    """
+    enviar_email(db_pedido.email, f"Pedido #{db_pedido.id} confirmado — JC Games Store", corpo)
+
+    return db_pedido
+
+@app.get("/pedidos", response_model=List[schemas.Pedido])
+def listar_pedidos(db: Session = Depends(get_db)):
+    return db.query(models.Pedido).all()
+
+@app.get("/meus-pedidos", response_model=List[schemas.Pedido])
+def meus_pedidos(usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    return db.query(models.Pedido).filter(models.Pedido.usuario_id == usuario.id).all()
+
+@app.put("/auth/senha")
+def alterar_senha(dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    senha_atual = dados.get("senha_atual", "")
+    nova_senha = dados.get("nova_senha", "")
+    if not bcrypt.checkpw(senha_atual.encode(), usuario.senha_hash.encode()):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta")
+    usuario.senha_hash = bcrypt.hashpw(nova_senha.encode(), bcrypt.gensalt()).decode()
+    db.commit()
+    return {"message": "Senha alterada com sucesso"}
+
+@app.put("/pedidos/{pedido_id}/cancelar")
+def cancelar_pedido(pedido_id: int, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    pedido = db.query(models.Pedido).filter(
+        models.Pedido.id == pedido_id,
+        models.Pedido.usuario_id == usuario.id
+    ).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    if pedido.status != "pendente":
+        raise HTTPException(status_code=400, detail="Só é possível cancelar pedidos pendentes")
+    pedido.status = "cancelado"
+    db.commit()
+    return {"message": "Pedido cancelado"}
+
+# --- ADMIN ---
+def get_admin(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
+    usuario = get_usuario_atual(authorization, db)
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    return usuario
+
+@app.get("/admin/pedidos", response_model=List[schemas.Pedido])
+def admin_listar_pedidos(status: Optional[str] = None, db: Session = Depends(get_db), admin = Depends(get_admin)):
+    query = db.query(models.Pedido)
+    if status:
+        query = query.filter(models.Pedido.status == status)
+    return query.order_by(models.Pedido.id.desc()).all()
+
+@app.put("/admin/pedidos/{pedido_id}/status")
+def admin_atualizar_status(pedido_id: int, dados: schemas.PedidoStatusUpdate, db: Session = Depends(get_db), admin = Depends(get_admin)):
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    pedido.status = dados.status
+    if dados.codigo_rastreio:
+        pedido.codigo_rastreio = dados.codigo_rastreio
+    db.commit()
+
+    # Email quando enviado
+    if dados.status == "enviado" and pedido.email:
+        rastreio = dados.codigo_rastreio or pedido.codigo_rastreio or ""
+        corpo = f"""
+    <div style="font-family:sans-serif;background:#0a0a0a;color:#fff;padding:40px;max-width:600px;margin:0 auto">
+        <h1 style="color:#3b82f6">JC GAMES <span style="color:#fff">STORE</span></h1>
+        <h2 style="color:#3b82f6">🚚 Seu pedido foi enviado!</h2>
+        <p>Olá <strong>{pedido.nome}</strong>, seu pedido #{pedido.id} saiu para entrega!</p>
+        <div style="background:#161616;border-radius:12px;padding:20px;margin:20px 0">
+            <h3 style="color:#3b82f6;margin-top:0">📦 Código de Rastreio</h3>
+            <p style="font-size:24px;font-weight:900;color:#fff;letter-spacing:2px">{rastreio}</p>
+            <a href="https://www.correios.com.br/rastreamento#{rastreio}" 
+               style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:900;margin-top:10px">
+               Rastrear nos Correios →
+            </a>
+        </div>
+        <div style="background:#161616;border-radius:12px;padding:20px;margin:20px 0">
+            <h3 style="color:#3b82f6;margin-top:0">📍 Endereço de Entrega</h3>
+            <p style="margin:4px 0">{pedido.endereco}, {pedido.numero} {pedido.complemento}</p>
+            <p style="margin:4px 0">{pedido.bairro} — {pedido.cidade}/{pedido.estado}</p>
+            <p style="margin:4px 0;color:#3b82f6"><strong>{pedido.frete_nome}</strong> — Prazo: {pedido.frete_prazo} dia(s) útil(eis)</p>
+        </div>
+        <p style="color:#9ca3af;font-size:12px">Em caso de dúvidas responda este email. Obrigado pela preferência!</p>
+    </div>
+        """
+        enviar_email(pedido.email, f"Pedido #{pedido_id} enviado! Rastreio: {rastreio}", corpo)
+
+    return {"message": f"Pedido #{pedido_id} atualizado para {dados.status}"}
+
+@app.get("/admin/dashboard")
+def admin_dashboard(db: Session = Depends(get_db), admin = Depends(get_admin)):
+    total_pedidos = db.query(models.Pedido).count()
+    pendentes = db.query(models.Pedido).filter(models.Pedido.status == "pendente").count()
+    enviados = db.query(models.Pedido).filter(models.Pedido.status == "enviado").count()
+    entregues = db.query(models.Pedido).filter(models.Pedido.status == "entregue").count()
+    cancelados = db.query(models.Pedido).filter(models.Pedido.status == "cancelado").count()
+    faturamento = db.query(models.Pedido).filter(models.Pedido.status != "cancelado").all()
+    total_faturado = sum(p.total for p in faturamento)
+    total_usuarios = db.query(models.Usuario).count()
+    total_produtos = db.query(models.Produto).count()
+    return {
+        "total_pedidos": total_pedidos,
+        "pendentes": pendentes,
+        "enviados": enviados,
+        "entregues": entregues,
+        "cancelados": cancelados,
+        "total_faturado": total_faturado,
+        "total_usuarios": total_usuarios,
+        "total_produtos": total_produtos,
+    }
+
+@app.put("/admin/produtos/{produto_id}", response_model=schemas.Produto)
+def admin_atualizar_produto(produto_id: int, dados: schemas.ProdutoUpdate, db: Session = Depends(get_db), admin = Depends(get_admin)):
+    produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
+    if not produto:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    for campo, valor in dados.model_dump(exclude_none=True).items():
+        setattr(produto, campo, valor)
+    db.commit()
+    db.refresh(produto)
+    return produto
+
+@app.delete("/admin/produtos/{produto_id}")
+def admin_deletar_produto(produto_id: int, db: Session = Depends(get_db), admin = Depends(get_admin)):
+    produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
+    if not produto:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    db.delete(produto)
+    db.commit()
+    return {"message": "Produto removido"}
+
+@app.post("/pagamentos/pix")
+def criar_pix(pedido_id: int, db: Session = Depends(get_db)):
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    payload = {
+        "reference_id": f"PEDIDO-{pedido.id}",
+        "customer": {
+            "name": pedido.nome,
+            "email": pedido.email,
+            "tax_id": pedido.cpf.replace(".", "").replace("-", "")
+        },
+        "items": [
+            {
+                "reference_id": f"item-{pedido.id}",
+                "name": f"Pedido #{pedido.id} - JC Games Store",
+                "quantity": 1,
+                "unit_amount": int(pedido.total * 100)
+            }
+        ],
+        "qr_codes": [
+            {
+                "amount": {"value": int(pedido.total * 100)},
+                "expiration_date": ((__import__("datetime").datetime.now() + __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S") + "-03:00")
+            }
+        ],
+        "notification_urls": [f"http://192.168.18.23:8000/pagamentos/webhook"]
+    }
+
+    r = http_requests.post(f"{PAGBANK_URL}/orders", json=payload, headers=PAGBANK_HEADERS)
+    data = r.json()
+
+    if r.status_code not in [200, 201]:
+        raise HTTPException(status_code=400, detail=data.get("error_messages", str(data)))
+
+    qr = data.get("qr_codes", [{}])[0]
+    return {
+        "order_id": data.get("id"),
+        "qr_code": qr.get("text"),
+        "qr_code_image": qr.get("links", [{}])[0].get("href") if qr.get("links") else None,
+        "total": pedido.total,
+        "status": data.get("status")
+    }
+
+
+@app.post("/pagamentos/webhook")
+async def pagbank_webhook(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    ref = body.get("reference_id", "")
+    status = body.get("charges", [{}])[0].get("status", "")
+    if ref.startswith("PEDIDO-") and status == "PAID":
+        pedido_id = int(ref.replace("PEDIDO-", ""))
+        pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+        if pedido:
+            pedido.status = "pago"
+            db.commit()
+    return {"status": "ok"}
+

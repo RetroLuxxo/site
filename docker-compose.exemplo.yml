@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ecommerce_db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: SENHA_DO_BANCO_AQUI
+      POSTGRES_DB: jc_games_db
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8180:8080"
+
+  backend:
+    build: ./backend
+    container_name: jc_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://admin:SENHA_DO_BANCO_AQUI@db/jc_games_db
+      SECRET_KEY: CHAVE_SECRETA_AQUI
+      EMAIL_USER: SEU_EMAIL@gmail.com
+      EMAIL_PASS: SENHA_DE_APP_GMAIL_AQUI
+      EMAIL_ADMIN: SEU_EMAIL@gmail.com
+      PAGBANK_TOKEN: SEU_TOKEN_PAGBANK_AQUI
+      PAGBANK_ENV: sandbox
+
+  frontend:
+    build: ./frontend
+    container_name: jc_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

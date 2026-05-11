@@ -1,0 +1,25 @@
+# ... (seus imports e configuração de CORS)
+
+# Rota para adicionar ao carrinho
+@app.post("/carrinho", response_model=schemas.CartItem)
+def adicionar_ao_carrinho(item: schemas.CartItemCreate, db: Session = Depends(get_db)):
+    # Verifica se o item já existe no carrinho para esse usuário/sessão
+    db_item = db.query(models.CartItem).filter(
+        models.CartItem.product_id == item.product_id,
+        models.CartItem.session_id == item.session_id
+    ).first()
+
+    if db_item:
+        db_item.quantidade += item.quantidade
+    else:
+        db_item = models.CartItem(**item.model_dump())
+        db.add(db_item)
+    
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+# Rota para listar o carrinho
+@app.get("/carrinho/{session_id}")
+def listar_carrinho(session_id: str, db: Session = Depends(get_db)):
+    return db.query(models.CartItem).filter(models.CartItem.session_id == session_id).all()

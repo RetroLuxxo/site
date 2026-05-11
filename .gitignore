@@ -1,0 +1,32 @@
+# Senhas e tokens
+.env
+.env.local
+frontend/.env.local
+backend/.env
+
+# Backups do banco
+backups/
+
+# Node
+node_modules/
+.next/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Docker
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
+backend/venv/
+docker-compose.yml
+frontend/.next/
+*.csv
+page.tsx
+globals.css
