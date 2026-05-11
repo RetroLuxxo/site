@@ -3,6 +3,7 @@
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 clear
@@ -11,8 +12,28 @@ echo -e "${BLUE}║       JC GAMES STORE — Setup             ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
-IP=$(ip route get 1 | awk '{print $7}' | head -1)
-echo -e "${GREEN}✅ IP detectado: $IP${NC}"
+# Detecta IP local automaticamente
+IP_LOCAL=$(ip route get 1 | awk '{print $7}' | head -1)
+
+echo -e "${YELLOW}Tipo de instalação:${NC}"
+echo "  1) Servidor local (rede interna)"
+echo "  2) VPS com domínio (produção)"
+read -p "Escolha (1 ou 2): " TIPO
+echo ""
+
+if [ "$TIPO" = "2" ]; then
+    echo -e "${BLUE}━━━ DOMÍNIO ━━━${NC}"
+    read -p "Domínio (ex: jcgames.com.br): " DOMINIO
+    API_URL="https://${DOMINIO}"
+    FRONTEND_URL="https://${DOMINIO}"
+    AMBIENTE="PRODUÇÃO"
+    echo -e "${GREEN}✅ Domínio configurado: ${DOMINIO}${NC}"
+else
+    API_URL="http://${IP_LOCAL}:8000"
+    FRONTEND_URL="http://${IP_LOCAL}:3000"
+    AMBIENTE="LOCAL"
+    echo -e "${GREEN}✅ IP detectado: ${IP_LOCAL}${NC}"
+fi
 echo ""
 
 echo -e "${BLUE}━━━ BANCO DE DADOS ━━━${NC}"
@@ -31,11 +52,16 @@ echo ""
 
 echo -e "${BLUE}━━━ PAGBANK ━━━${NC}"
 read -p "Token PagBank: " PAGBANK_TOKEN
-echo "1) sandbox  2) production"
+if [ "$TIPO" = "2" ]; then
+    echo -e "${YELLOW}Recomendado: production para VPS${NC}"
+fi
+echo "  1) sandbox (testes)"
+echo "  2) production (produção)"
 read -p "Ambiente (1 ou 2): " PAGBANK_CHOICE
 [ "$PAGBANK_CHOICE" = "2" ] && PAGBANK_ENV="production" || PAGBANK_ENV="sandbox"
 echo ""
 
+# Gera docker-compose.yml
 cat > docker-compose.yml << COMPOSE
 services:
   db:
@@ -83,32 +109,82 @@ volumes:
   postgres_data:
 COMPOSE
 
-echo "NEXT_PUBLIC_API_URL=http://${IP}:8000" > frontend/.env.local
+# Gera .env.local
+echo "NEXT_PUBLIC_API_URL=${API_URL}" > frontend/.env.local
 
+# Salva credenciais
 cat > ~/credenciais.txt << CREDS
 =====================================
  JC GAMES STORE — CREDENCIAIS
+ GUARDE COM SEGURANÇA!
 =====================================
-IP:           ${IP}
-Loja:         http://${IP}:3000
-Admin:        http://${IP}:3000/admin
-Adminer:      http://${IP}:8180
+AMBIENTE: ${AMBIENTE}
 
-Banco senha:  ${DB_PASS}
-Email:        ${EMAIL_USER}
-Email senha:  ${EMAIL_PASS}
-Email admin:  ${EMAIL_ADMIN}
-PagBank:      ${PAGBANK_TOKEN}
-Ambiente:     ${PAGBANK_ENV}
-JWT:          ${JWT_KEY}
+ACESSO
+------
+Loja:         ${FRONTEND_URL}
+Admin:        ${FRONTEND_URL}/admin
+API:          ${API_URL}
+Adminer:      http://${IP_LOCAL}:8180
 
-Após subir execute no Adminer:
+BANCO
+-----
+Usuário: admin
+Senha:   ${DB_PASS}
+Banco:   jc_games_db
+
+EMAIL
+-----
+Conta:        ${EMAIL_USER}
+Senha de App: ${EMAIL_PASS}
+Admin:        ${EMAIL_ADMIN}
+
+PAGBANK
+-------
+Token:     ${PAGBANK_TOKEN}
+Ambiente:  ${PAGBANK_ENV}
+
+JWT
+---
+Chave: ${JWT_KEY}
+
+$([ "$TIPO" = "2" ] && echo "DOMÍNIO
+-------
+${DOMINIO}
+
+HTTPS (Nginx Proxy Manager)
+---------------------------
+1. Instale o Nginx Proxy Manager
+2. Aponte ${DOMINIO} → http://localhost:3000
+3. Aponte api.${DOMINIO} → http://localhost:8000
+4. Ative SSL com Let's Encrypt")
+
+APÓS SUBIR
+----------
+Acesse o Adminer e execute:
 UPDATE usuarios SET is_admin = TRUE WHERE email = '${EMAIL_ADMIN}';
+
+GITHUB
+------
+https://github.com/RetroLuxxo/site
 =====================================
 CREDS
 
 echo ""
-echo -e "${GREEN}✅ Configuração concluída!${NC}"
-echo -e "📄 Credenciais salvas em: ~/credenciais.txt"
+echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  ✅ Configuração concluída!               ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "🚀 Agora rode: ${BLUE}make up${NC}"
+echo -e "📄 Credenciais salvas em: ${YELLOW}~/credenciais.txt${NC}"
+echo ""
+
+if [ "$TIPO" = "2" ]; then
+    echo -e "${YELLOW}⚠️  Para VPS lembre-se de:${NC}"
+    echo -e "   1. Apontar DNS do domínio para o IP da VPS"
+    echo -e "   2. Instalar Nginx Proxy Manager para HTTPS"
+    echo -e "   3. Abrir portas 80 e 443 no firewall"
+    echo ""
+fi
+
+echo -e "🚀 Para subir o projeto: ${BLUE}make up${NC}"
+echo ""
