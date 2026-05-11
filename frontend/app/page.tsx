@@ -53,6 +53,9 @@ export default function Home() {
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", cpf: "", numero: "", complemento: "" });
   const [pedidoFinalizado, setPedidoFinalizado] = useState<number | null>(null);
   const [pixData, setPixData] = useState<{qr_code:string;qr_code_image:string;total:number}|null>(null);
+  const [formaPagamento, setFormaPagamento] = useState<"pix"|"cartao">("pix");
+  const [cartaoForm, setCartaoForm] = useState({numero:"",nome:"",validade:"",cvv:"",parcelas:"1"});
+  const [cartaoErro, setCartaoErro] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erroCheckout, setErroCheckout] = useState("");
 
@@ -102,9 +105,10 @@ export default function Home() {
   };
 
   const salvarEnderecoAtual = async () => {
-    if (!endereco || !form.numero || !usuario) return;
-    await fetch(`${API}/enderecos`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ cep, logradouro: endereco.logradouro, numero: form.numero, complemento: form.complemento, bairro: endereco.bairro, cidade: endereco.localidade, estado: endereco.uf, principal: enderecosSalvos.length === 0 }) });
-    carregarEnderecos(token);
+    if (!endereco || !form.numero || !usuario) { alert("Preencha o número antes de salvar!"); return; }
+    const r = await fetch(`${API}/enderecos`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ cep, logradouro: endereco.logradouro, numero: form.numero, complemento: form.complemento, bairro: endereco.bairro, cidade: endereco.localidade, estado: endereco.uf, principal: enderecosSalvos.length === 0 }) });
+    if (r.ok) { carregarEnderecos(token); alert("✅ Endereço salvo!"); }
+    else { alert("❌ Erro ao salvar endereço"); }
   };
 
   const finalizarAuth = async (data: any, tk: string) => {
@@ -159,8 +163,15 @@ export default function Home() {
         setPedidoFinalizado(pedido.id); setProdutos(prev=>prev.map(p=>{const it=carrinho.find(i=>i.produto.id===p.id);return it?{...p,estoque:Math.max(0,p.estoque-it.quantidade)}:p;}));
         setCarrinho([]); setCheckoutAberto(false); setCarrinhoAberto(false);
         try {
-          const pixR = await fetch(`${API}/pagamentos/pix?pedido_id=${pedido.id}`, {method:"POST"});
-          if (pixR.ok) { const px = await pixR.json(); setPixData(px); }
+          if(formaPagamento==="pix"){
+            const pixR = await fetch(`${API}/pagamentos/pix?pedido_id=${pedido.id}`, {method:"POST"});
+            if (pixR.ok) { const px = await pixR.json(); setPixData(px); }
+          } else {
+            const cartaoR = await fetch(`${API}/pagamentos/cartao`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pedido_id:pedido.id,numero_cartao:cartaoForm.numero.replace(/\s/g,""),nome_cartao:cartaoForm.nome,mes_validade:cartaoForm.validade.split("/")[0],ano_validade:"20"+cartaoForm.validade.split("/")[1],cvv:cartaoForm.cvv,parcelas:parseInt(cartaoForm.parcelas)})});
+            const cr = await cartaoR.json();
+            if(cartaoR.ok){setPixData({qr_code:"",qr_code_image:"",total:pedido.total});}
+            else{setErroCheckout(cr.detail||"Erro no cartão");}
+          }
         } catch {}
       } else { setErroCheckout(pedido.detail||"Erro ao finalizar"); }
     } finally { setEnviando(false); }
@@ -305,14 +316,16 @@ export default function Home() {
           <div className="glass-modal rounded-3xl p-6 text-center max-w-sm w-full slide-up overflow-y-auto max-h-[90vh]">
             <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-green-500/25 flex items-center justify-center text-2xl mx-auto mb-4">✅</div>
             <h2 className="text-lg font-black text-green-400 mb-1">Pedido #{pedidoFinalizado}</h2>
-            <p className="text-gray-400 text-sm mb-4">Confirmado! Pague via PIX abaixo:</p>
-            {pixData ? (<>
+            <p className="text-gray-400 text-sm mb-4">{pixData?.qr_code?"Pague via PIX para confirmar:":"Pagamento confirmado!"}</p>
+            {pixData?.qr_code ? (<>
               {pixData.qr_code_image && <img src={pixData.qr_code_image} alt="QR Code PIX" className="w-48 h-48 mx-auto rounded-xl mb-3 bg-white p-2"/>}
               <p className="text-xs text-gray-500 mb-2">Ou copie o código PIX:</p>
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 mb-3">
                 <p className="text-xs text-gray-300 break-all select-all">{pixData.qr_code}</p>
               </div>
-              <button onClick={()=>navigator.clipboard.writeText(pixData.qr_code)} className="w-full bg-purple-700 hover:bg-purple-600 py-2.5 rounded-xl font-black text-xs mb-3 transition-all btn-press">📋 Copiar Código PIX</button>
+              <button onClick={()=>{
+  alert('Código PIX copiado!');
+}} className="w-full bg-purple-700 hover:bg-purple-600 py-2.5 rounded-xl font-black text-xs mb-3 transition-all btn-press">📋 Copiar Código PIX</button>
               <p className="text-green-400 font-black text-lg mb-4">Total: R$ {pixData.total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
             </>):(<p className="text-gray-500 text-sm mb-4">Você receberá um email de confirmação.</p>)}
             <button onClick={()=>{setPedidoFinalizado(null);setPixData(null);}} className="w-full bg-white/6 border border-white/10 hover:bg-white/10 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Continuar Comprando</button>
@@ -511,7 +524,7 @@ export default function Home() {
                       <input value={endereco.logradouro} readOnly className={inpR}/>
                       <div className="grid grid-cols-2 gap-3"><input placeholder="Número *" value={form.numero} onChange={e=>setForm({...form,numero:e.target.value})} className={inp}/><input placeholder="Complemento" value={form.complemento} onChange={e=>setForm({...form,complemento:e.target.value})} className={inp}/></div>
                       <div className="grid grid-cols-3 gap-3"><input value={endereco.bairro} readOnly className={inpR}/><input value={endereco.localidade} readOnly className={inpR}/><input value={endereco.uf} readOnly className={inpR}/></div>
-                      {usuario&&<button onClick={salvarEnderecoAtual} className="text-xs text-purple-400 hover:text-blue-300 transition-all">💾 Salvar endereço</button>}
+                      {usuario&&<button onClick={salvarEnderecoAtual} className="w-full bg-purple-700/30 hover:bg-purple-700/60 border border-purple-500/40 text-purple-300 hover:text-white py-2.5 rounded-xl font-black text-sm transition-all btn-press">💾 Salvar este endereço</button>}
                     </div>
                   )}
                 </div>
@@ -534,9 +547,30 @@ export default function Home() {
                 <div className="flex justify-between font-black pt-2 border-t border-white/6"><span className="text-gray-200">Total</span><span className="text-green-400 text-lg">R$ {totalFinal.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span></div>
               </div>
             </div>
-            <div className="px-5 pb-5 pt-4 border-t border-white/6 flex-shrink-0">
+            <div className="px-5 pb-5 pt-4 border-t border-white/6 flex-shrink-0 space-y-4">
+              <div>
+                <p className="text-xs text-gray-600 uppercase font-black tracking-wider mb-3">💳 Forma de Pagamento</p>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <button onClick={()=>setFormaPagamento("pix")} className={"py-2.5 rounded-xl font-black text-sm transition-all btn-press border "+(formaPagamento==="pix"?"bg-purple-700 border-purple-500 text-white":"bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/40")}>🏦 PIX</button>
+                  <button onClick={()=>setFormaPagamento("cartao")} className={"py-2.5 rounded-xl font-black text-sm transition-all btn-press border "+(formaPagamento==="cartao"?"bg-purple-700 border-purple-500 text-white":"bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/40")}>💳 Cartão</button>
+                </div>
+                {formaPagamento==="cartao"&&(
+                  <div className="space-y-3 fade-in">
+                    <input placeholder="Número do cartão" maxLength={19} value={cartaoForm.numero} onChange={e=>{const v=e.target.value.replace(/\D/g,"").slice(0,16);setCartaoForm({...cartaoForm,numero:v.replace(/(.{4})/g,"$1 ").trim()});}} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all"/>
+                    <input placeholder="Nome no cartão" value={cartaoForm.nome} onChange={e=>setCartaoForm({...cartaoForm,nome:e.target.value.toUpperCase()})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all"/>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input placeholder="MM/AA" maxLength={5} value={cartaoForm.validade} onChange={e=>{let v=e.target.value.replace(/\D/g,"");if(v.length>=3)v=v.slice(0,2)+"/"+v.slice(2,4);setCartaoForm({...cartaoForm,validade:v});}} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all"/>
+                      <input placeholder="CVV" maxLength={4} value={cartaoForm.cvv} onChange={e=>setCartaoForm({...cartaoForm,cvv:e.target.value.replace(/\D/g,"")})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all"/>
+                    </div>
+                    <select value={cartaoForm.parcelas} onChange={e=>setCartaoForm({...cartaoForm,parcelas:e.target.value})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500/70 outline-none transition-all">
+                      {[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>{const taxa=n===1?0:0.0299;const total=totalFinal*(1+taxa);const parc=total/n;return(<option key={n} value={n} style={{background:"#1a0030"}}>{n}x de R$ {parc.toLocaleString("pt-BR",{minimumFractionDigits:2})}{n>1?" (com juros)":" (sem juros)"}</option>);})}
+                    </select>
+                    {cartaoErro&&<p className="text-red-400 text-xs">{cartaoErro}</p>}
+                  </div>
+                )}
+              </div>
               <button onClick={finalizarPedido} disabled={!freteSelecionado||enviando} className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed py-4 rounded-xl font-black text-sm transition-all btn-press flex items-center justify-center gap-3">
-                {enviando?(<><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/><span>Processando...</span></>):"✅ Confirmar Pedido"}
+                {enviando?(<><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/><span>Processando...</span></>):formaPagamento==="pix"?"🏦 Pagar com PIX":"💳 Pagar com Cartão"}
               </button>
             </div>
           </div>

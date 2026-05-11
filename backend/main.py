@@ -472,3 +472,45 @@ async def pagbank_webhook(request: Request, db: Session = Depends(get_db)):
             db.commit()
     return {"status": "ok"}
 
+
+@app.post("/pagamentos/cartao")
+def pagar_cartao(dados: dict, db: Session = Depends(get_db)):
+    import requests as http_req
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == dados.get("pedido_id")).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    parcelas = dados.get("parcelas", 1)
+    taxa = 0 if parcelas == 1 else 0.0299
+    total_com_juros = int(pedido.total * (1 + taxa) * 100)
+    payload = {
+        "reference_id": f"PEDIDO-{pedido.id}",
+        "customer": {
+            "name": pedido.nome,
+            "email": pedido.email,
+            "tax_id": pedido.cpf.replace(".","").replace("-","")
+        },
+        "items": [{"reference_id": f"item-{pedido.id}", "name": f"Pedido #{pedido.id} - JC Games Store", "quantity": 1, "unit_amount": total_com_juros}],
+        "charges": [{
+            "reference_id": f"charge-{pedido.id}",
+            "description": f"Pedido #{pedido.id} JC Games Store",
+            "amount": {"value": total_com_juros, "currency": "BRL"},
+            "payment_method": {
+                "type": "CREDIT_CARD",
+                "installments": parcelas,
+                "capture": True,
+                "card": {
+                    "number": dados.get("numero_cartao"),
+                    "exp_month": dados.get("mes_validade"),
+                    "exp_year": dados.get("ano_validade"),
+                    "security_code": dados.get("cvv"),
+                    "holder": {"name": dados.get("nome_cartao")}
+                }
+            }
+        }],
+        "notification_urls": [f"{os.getenv('API_URL', 'http://192.168.18.10:8000')}/pagamentos/webhook"]
+    }
+    r = http_req.post(f"{PAGBANK_URL}/orders", json=payload, headers=PAGBANK_HEADERS)
+    data = r.json()
+    if r.status_code not in [200, 201]:
+        raise HTTPException(status_code=400, detail=str(data.get("error_messages", data)))
+    return {"order_id": data.get("id"), "status": data.get("charges", [{}])[0].get("status"), "total": pedido.total, "parcelas": parcelas}
