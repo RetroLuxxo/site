@@ -28,8 +28,9 @@ export default function Admin() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("upload_preset", "jcgames_upload");
-      const r = await fetch("https://api.cloudinary.com/v1_1/drpfwdjfg/image/upload", { method: "POST", body: fd });
+      fd.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_PRESET || "jcgames_upload");
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "drpfwdjfg";
+      const r = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: fd });
       const d = await r.json();
       if (d.secure_url) callback(d.secure_url);
       else showMsg("❌ Erro no upload");

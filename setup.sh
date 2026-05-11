@@ -117,6 +117,8 @@ volumes:
 COMPOSE
 
 echo "NEXT_PUBLIC_API_URL=${API_URL}" > frontend/.env.local
+echo "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}" >> frontend/.env.local
+echo "NEXT_PUBLIC_CLOUDINARY_PRESET=${CLOUDINARY_PRESET}" >> frontend/.env.local
 
 cat > ~/credenciais.txt << CREDS
 =====================================
