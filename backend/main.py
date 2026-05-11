@@ -440,7 +440,7 @@ def criar_pix(pedido_id: int, db: Session = Depends(get_db)):
                 "expiration_date": ((__import__("datetime").datetime.now() + __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S") + "-03:00")
             }
         ],
-        "notification_urls": [f"http://192.168.18.23:8000/pagamentos/webhook"]
+        "notification_urls": [f"{os.getenv('API_URL', 'http://192.168.18.10:8000')}/pagamentos/webhook"]
     }
 
     r = http_requests.post(f"{PAGBANK_URL}/orders", json=payload, headers=PAGBANK_HEADERS)

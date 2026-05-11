@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, EmailStr
 from typing import List, Optional
+import re
 
 class UsuarioBase(BaseModel):
     email: str
@@ -11,9 +12,68 @@ class UsuarioCadastro(BaseModel):
     cpf: str
     senha: str
 
+    @field_validator('email')
+    @classmethod
+    def email_valido(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError('Email é obrigatório')
+        if '@' not in v or '.' not in v.split('@')[-1]:
+            raise ValueError('Email inválido')
+        return v
+
+    @field_validator('nome')
+    @classmethod
+    def nome_valido(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError('Nome é obrigatório')
+        if len(v) < 3:
+            raise ValueError('Nome deve ter pelo menos 3 caracteres')
+        return v
+
+    @field_validator('telefone')
+    @classmethod
+    def telefone_valido(cls, v):
+        v = re.sub(r'\D', '', v)
+        if len(v) < 10 or len(v) > 11:
+            raise ValueError('Telefone inválido (mínimo 10 dígitos)')
+        return v
+
+    @field_validator('cpf')
+    @classmethod
+    def cpf_valido(cls, v):
+        v = re.sub(r'\D', '', v)
+        if len(v) != 11:
+            raise ValueError('CPF deve ter 11 dígitos')
+        if v == v[0] * 11:
+            raise ValueError('CPF inválido')
+        return v
+
+    @field_validator('senha')
+    @classmethod
+    def senha_valida(cls, v):
+        if not v or len(v) < 6:
+            raise ValueError('Senha deve ter pelo menos 6 caracteres')
+        return v
+
 class UsuarioLogin(BaseModel):
     email: str
     senha: str
+
+    @field_validator('email')
+    @classmethod
+    def email_obrigatorio(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Email é obrigatório')
+        return v.strip()
+
+    @field_validator('senha')
+    @classmethod
+    def senha_obrigatoria(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Senha é obrigatória')
+        return v
 
 class UsuarioUpdate(BaseModel):
     nome: Optional[str] = None

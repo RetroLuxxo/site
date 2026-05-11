@@ -52,9 +52,7 @@ export default function Home() {
 
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", cpf: "", numero: "", complemento: "" });
   const [pedidoFinalizado, setPedidoFinalizado] = useState<number | null>(null);
-  const [pixData, setPixData] = useState<{qr_code: string; qr_code_image: string | null; total: number; order_id: string} | null>(null);
-  const [gerandoPix, setGerandoPix] = useState(false);
-  const [pixCopiado, setPixCopiado] = useState(false);
+  const [pixData, setPixData] = useState<{qr_code:string;qr_code_image:string;total:number}|null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erroCheckout, setErroCheckout] = useState("");
 
@@ -93,29 +91,6 @@ export default function Home() {
   useEffect(() => { const t = busca.toLowerCase(); setProdutosFiltrados(produtos.filter(p => p.nome.toLowerCase().includes(t) || p.descricao?.toLowerCase().includes(t))); }, [busca, produtos]);
   useEffect(() => { if (!usuario) localStorage.setItem("carrinho", JSON.stringify(carrinho)); }, [carrinho, usuario]);
 
-  // Bloqueia scroll do body quando qualquer overlay está aberto
-  useEffect(() => {
-    const aberto = carrinhoAberto || checkoutAberto || loginAberto || perfilAberto;
-    document.body.style.overflow = aberto ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [carrinhoAberto, checkoutAberto, loginAberto, perfilAberto]);
-
-  // Botão voltar do navegador fecha o modal
-  useEffect(() => {
-    const fecharComVoltar = () => {
-      if (carrinhoAberto) setCarrinhoAberto(false);
-      else if (checkoutAberto) setCheckoutAberto(false);
-      else if (loginAberto) setLoginAberto(false);
-      else if (perfilAberto) setPerfilAberto(false);
-    };
-    const aberto = carrinhoAberto || checkoutAberto || loginAberto || perfilAberto;
-    if (aberto) {
-      window.history.pushState({ modal: true }, '');
-      window.addEventListener('popstate', fecharComVoltar);
-    }
-    return () => window.removeEventListener('popstate', fecharComVoltar);
-  }, [carrinhoAberto, checkoutAberto, loginAberto, perfilAberto]);
-
   const carregarEnderecos = async (tk: string) => { const r = await fetch(`${API}/enderecos`, { headers: authHeaders(tk) }); if (r.ok) setEnderecosSalvos(await r.json()); };
   const adicionarCarrinhoDB = async (p: Produto) => { if (!usuario || carrinho.find(i => i.produto.id === p.id)) return; await fetch(`${API}/carrinho`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ product_id: p.id, quantidade: 1, session_id: sessionId(usuario) }) }); };
   const removerCarrinhoDB = async (id: number) => { if (!usuario) return; const r = await fetch(`${API}/carrinho?session_id=${sessionId(usuario)}`, { headers: authHeaders() }); if (!r.ok) return; const itens: CartItemDB[] = await r.json(); const it = itens.find(i => i.product_id === id); if (it) await fetch(`${API}/carrinho/${it.id}`, { method: "DELETE", headers: authHeaders() }); };
@@ -144,7 +119,15 @@ export default function Home() {
   };
 
   const fazerCadastro = async () => {
-    setAuthLoading(true); setAuthErro("");
+    setAuthErro("");
+    if (!authForm.nome.trim() || authForm.nome.trim().length < 3) { setAuthErro("Nome deve ter pelo menos 3 caracteres"); return; }
+    const tel = authForm.telefone.replace(/\D/g,"");
+    if (tel.length < 10 || tel.length > 11) { setAuthErro("Telefone inválido"); return; }
+    const cpf = authForm.cpf.replace(/\D/g,"");
+    if (cpf.length !== 11) { setAuthErro("CPF deve ter 11 dígitos"); return; }
+    if (!authForm.email.trim() || !authForm.email.includes("@")) { setAuthErro("Email inválido"); return; }
+    if (!authForm.senha || authForm.senha.length < 6) { setAuthErro("Senha deve ter pelo menos 6 caracteres"); return; }
+    setAuthLoading(true);
     try { const r = await fetch(`${API}/auth/cadastro`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(authForm) }); const d = await r.json(); if (!r.ok) { setAuthErro(d.detail||"Erro"); return; } await finalizarAuth(d,d.access_token); } finally { setAuthLoading(false); }
   };
 
@@ -173,14 +156,12 @@ export default function Home() {
       const pedido=await r.json();
       if(r.ok){
         if(usuario){const idb:CartItemDB[]=await(await fetch(`${API}/carrinho?session_id=${sessionId(usuario)}`,{headers:authHeaders()})).json();for(const it of idb)await fetch(`${API}/carrinho/${it.id}`,{method:"DELETE",headers:authHeaders()});}
-        setPedidoFinalizado(pedido.id);
-        // Gera PIX automaticamente
-        setGerandoPix(true);
-        try {
-          const pixR = await fetch(`${API}/pagamentos/pix?pedido_id=${pedido.id}`, { method: "POST" });
-          if (pixR.ok) { const pix = await pixR.json(); setPixData(pix); }
-        } catch(e) { console.error(e); } finally { setGerandoPix(false); } setProdutos(prev=>prev.map(p=>{const it=carrinho.find(i=>i.produto.id===p.id);return it?{...p,estoque:Math.max(0,p.estoque-it.quantidade)}:p;}));
+        setPedidoFinalizado(pedido.id); setProdutos(prev=>prev.map(p=>{const it=carrinho.find(i=>i.produto.id===p.id);return it?{...p,estoque:Math.max(0,p.estoque-it.quantidade)}:p;}));
         setCarrinho([]); setCheckoutAberto(false); setCarrinhoAberto(false);
+        try {
+          const pixR = await fetch(`${API}/pagamentos/pix?pedido_id=${pedido.id}`, {method:"POST"});
+          if (pixR.ok) { const px = await pixR.json(); setPixData(px); }
+        } catch {}
       } else { setErroCheckout(pedido.detail||"Erro ao finalizar"); }
     } finally { setEnviando(false); }
   };
@@ -188,19 +169,19 @@ export default function Home() {
   const totalItens=carrinho.reduce((s,i)=>s+i.quantidade,0);
   const totalProdutos=carrinho.reduce((s,i)=>s+i.produto.preco*i.quantidade,0);
   const totalFinal=totalProdutos+(freteSelecionado?.preco??0);
-  const sBadge=(s:string)=>({pendente:"bg-amber-500/20 text-amber-300 border border-amber-500/40",cancelado:"bg-red-500/20 text-red-300 border border-red-500/40",enviado:"bg-blue-500/20 text-blue-300 border border-blue-500/40",pago:"bg-purple-500/20 text-purple-300 border border-purple-500/40",entregue:"bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"}[s]||"bg-gray-500/20 text-gray-300 border border-gray-500/40");
+  const sBadge=(s:string)=>({pendente:"bg-amber-500/20 text-amber-300 border border-amber-500/40",cancelado:"bg-red-500/20 text-red-300 border border-red-500/40",enviado:"bg-blue-500/20 text-blue-300 border border-purple-500/40",pago:"bg-purple-500/20 text-purple-300 border border-purple-500/40",entregue:"bg-emerald-500/20 text-emerald-300 border border-green-500/40"}[s]||"bg-gray-500/20 text-gray-300 border border-gray-500/40");
   const sIcon=(s:string)=>({pendente:"⏳",cancelado:"❌",enviado:"🚚",pago:"💳",entregue:"✅"}[s]||"📦");
 
   // Estilos — transparência sutil mas legível
-  const inp="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-blue-500/70 focus:bg-white/10 outline-none transition-all";
+  const inp="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 focus:bg-white/10 outline-none transition-all";
   const inpR="w-full bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-sm text-gray-500 outline-none";
   // Card modal: fundo semi-opaco com blur leve
-  const modal="w-full bg-[#0f1120]/95 backdrop-blur-md border border-white/8";
+  const modal="w-full bg-[#0d0010]/95 backdrop-blur-md border border-white/8";
   // Card interno: levemente translúcido
   const card="bg-white/4 border border-white/8 rounded-2xl";
 
   return (
-    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(135deg,#080c18 0%,#0c1020 50%,#080c18 100%)"}}>
+    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(135deg,#0a0010 0%,#130020 50%,#0a0010 100%)"}}>
       <style>{`
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
@@ -211,39 +192,39 @@ export default function Home() {
         .btn-press:active{transform:scale(0.97)}
         .card-h{transition:transform 0.2s ease,box-shadow 0.2s ease}
         .card-h:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.5)}
-        .glass-header{background:rgba(8,12,24,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
-        .glass-sidebar{background:rgba(8,12,24,0.95);backdrop-filter:blur(20px);border-left:1px solid rgba(255,255,255,0.06)}
-        .glass-modal{background:rgba(10,12,26,0.96);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.08)}
-        .glass-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)}
-        .glass-card-hover:hover{background:rgba(255,255,255,0.06)}
+        .glass-header{background:rgba(10,0,20,0.90);backdrop-filter:blur(20px);border-bottom:1px solid rgba(139,47,201,0.2)}
+        .glass-sidebar{background:rgba(10,0,20,0.97);backdrop-filter:blur(20px);border-left:1px solid rgba(139,47,201,0.2)}
+        .glass-modal{background:rgba(12,0,24,0.97);backdrop-filter:blur(24px);border:1px solid rgba(139,47,201,0.25)}
+        .glass-card{background:rgba(139,47,201,0.05);border:1px solid rgba(139,47,201,0.15)}
+        .glass-card-hover:hover{background:rgba(139,47,201,0.1)}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}
       `}</style>
 
       {/* HEADER */}
       <header className="glass-header sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
+        <div className="max-w-[1600px] mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-xs font-black">JC</div>
-            <span className="font-black text-base sm:text-lg tracking-tight hidden sm:block"><span className="text-blue-400">JC GAMES</span><span className="text-white/90"> STORE</span></span>
+            <img src="/logo.png" alt="JC Games" className="w-8 h-8 object-contain rounded-lg"/>
+            <span className="font-black text-base sm:text-lg tracking-tight hidden sm:block"><span className="text-purple-400">JC GAMES</span><span className="text-white/90"> STORE</span></span>
           </a>
           <div className="flex-1 max-w-md hidden md:block">
-            <input placeholder="🔍 Buscar produtos..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500/50 focus:bg-white/10 outline-none transition-all"/>
+            <input placeholder="🔍 Buscar produtos..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-purple-500/50 focus:bg-white/10 outline-none transition-all"/>
           </div>
           <div className="flex items-center gap-2">
             {sincronizando&&<span className="text-xs text-gray-600 hidden sm:block">☁️</span>}
             {usuario?(
               <div className="hidden sm:flex items-center gap-2">
                 <button onClick={abrirPerfil} className="flex items-center gap-2 bg-white/6 hover:bg-white/10 border border-white/10 rounded-xl px-3 py-2 text-sm transition-all btn-press">
-                  <span className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs font-black flex-shrink-0">{usuario.nome[0]}</span>
+                  <span className="w-6 h-6 rounded-full bg-purple-700 flex items-center justify-center text-xs font-black flex-shrink-0">{usuario.nome[0]}</span>
                   <span className="text-gray-300 font-medium">{usuario.nome.split(" ")[0]}</span>
                 </button>
-                {usuario.is_admin&&<a href="/admin" className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 text-xs text-amber-400 hover:bg-amber-500/20 transition-all font-bold">⚙️ Admin</a>}
-                <button onClick={logout} className="text-xs text-red-400/60 hover:text-red-400 transition-all px-2 py-2">Sair</button>
+                {usuario.is_admin&&<a href="/admin" className="bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2 text-xs text-green-400 hover:bg-green-500/20 transition-all font-bold">⚙️ Admin</a>}
+                <button onClick={logout} className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 rounded-xl px-3 py-2 text-xs text-red-400 font-bold transition-all btn-press">Sair</button>
               </div>
             ):(
-              <button onClick={()=>setLoginAberto(true)} className="hidden sm:block bg-white/6 border border-white/10 hover:border-blue-500/40 rounded-xl px-4 py-2 text-sm text-blue-400 transition-all font-medium btn-press">Entrar</button>
+              <button onClick={()=>setLoginAberto(true)} className="hidden sm:block bg-white/6 border border-white/10 hover:border-purple-500/40 rounded-xl px-4 py-2 text-sm text-purple-400 transition-all font-medium btn-press">Entrar</button>
             )}
-            <button onClick={()=>setCarrinhoAberto(true)} className="relative bg-blue-600 hover:bg-blue-500 rounded-xl px-3 sm:px-4 py-2 text-sm font-bold transition-all btn-press flex items-center gap-2">
+            <button onClick={()=>setCarrinhoAberto(true)} className="relative bg-purple-700 hover:bg-purple-600 rounded-xl px-3 sm:px-4 py-2 text-sm font-bold transition-all btn-press flex items-center gap-2">
               <span>🛒</span><span className="hidden sm:inline">Carrinho</span>
               {totalItens>0&&<span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-black">{totalItens}</span>}
             </button>
@@ -251,34 +232,34 @@ export default function Home() {
           </div>
         </div>
         <div className="md:hidden px-4 pb-3">
-          <input placeholder="🔍 Buscar produtos..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500/50 outline-none transition-all"/>
+          <input placeholder="🔍 Buscar produtos..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-purple-500/50 outline-none transition-all"/>
         </div>
         {menuMobile&&(
           <div className="sm:hidden border-t border-white/5 px-4 py-3 space-y-1 fade-in">
             {usuario?(<>
               <button onClick={abrirPerfil} className="w-full text-left py-2.5 px-3 rounded-lg hover:bg-white/5 text-sm text-gray-300 transition-all">👤 {usuario.nome.split(" ")[0]}</button>
-              {usuario.is_admin&&<a href="/admin" className="block py-2.5 px-3 rounded-lg hover:bg-white/5 text-sm text-amber-400 transition-all">⚙️ Admin</a>}
+              {usuario.is_admin&&<a href="/admin" className="block py-2.5 px-3 rounded-lg hover:bg-white/5 text-sm text-green-400 transition-all">⚙️ Admin</a>}
               <button onClick={()=>{logout();setMenuMobile(false);}} className="w-full text-left py-2.5 px-3 rounded-lg hover:bg-white/5 text-sm text-red-400 transition-all">Sair</button>
-            </>):<button onClick={()=>{setLoginAberto(true);setMenuMobile(false);}} className="w-full text-left py-2.5 px-3 rounded-lg hover:bg-white/5 text-sm text-blue-400 transition-all">Entrar / Cadastrar</button>}
+            </>):<button onClick={()=>{setLoginAberto(true);setMenuMobile(false);}} className="w-full text-left py-2.5 px-3 rounded-lg hover:bg-white/5 text-sm text-purple-400 transition-all">Entrar / Cadastrar</button>}
           </div>
         )}
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex items-center justify-between flex-wrap gap-3">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Hardware de <span className="text-blue-400">Elite</span></h1>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Hardware de <span className="text-purple-400">Elite</span></h1>
           <p className="text-gray-500 text-sm mt-0.5">{produtosFiltrados.length} produto{produtosFiltrados.length!==1?"s":""} disponível{produtosFiltrados.length!==1?"s":""}</p>
         </div>
-        {busca&&<button onClick={()=>setBusca("")} className="text-sm text-blue-400 hover:text-blue-300 transition-all">✕ Limpar</button>}
+        {busca&&<button onClick={()=>setBusca("")} className="text-sm text-purple-400 hover:text-blue-300 transition-all">✕ Limpar</button>}
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 pb-16">
         {loading?(
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {[...Array(10)].map((_,i)=><div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse"><div className="h-40 bg-white/5"/><div className="p-3 space-y-2"><div className="h-3 bg-white/5 rounded w-3/4"/><div className="h-5 bg-white/5 rounded w-1/2"/></div></div>)}
           </div>
         ):produtosFiltrados.length===0?(
-          <div className="text-center py-24"><p className="text-5xl mb-4">🔍</p><p className="text-gray-500">Nenhum produto para "{busca}"</p><button onClick={()=>setBusca("")} className="mt-4 text-blue-400 hover:text-blue-300 text-sm transition-all">Limpar busca</button></div>
+          <div className="text-center py-24"><p className="text-5xl mb-4">🔍</p><p className="text-gray-500">Nenhum produto para "{busca}"</p><button onClick={()=>setBusca("")} className="mt-4 text-purple-400 hover:text-blue-300 text-sm transition-all">Limpar busca</button></div>
         ):(
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {produtosFiltrados.map((p,i)=>(
@@ -291,11 +272,11 @@ export default function Home() {
                 <div className="p-3 sm:p-4">
                   <h3 className="text-xs sm:text-sm font-semibold text-gray-200 line-clamp-2 leading-tight mb-3 min-h-[2.5rem]">{p.nome}</h3>
                   <div className="mb-3">
-                    <p className="text-[9px] text-blue-400/70 font-bold uppercase tracking-widest">PIX</p>
-                    <p className="text-lg sm:text-xl font-black text-emerald-400">R$ {p.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
+                    <p className="text-[9px] text-purple-400/70 font-bold uppercase tracking-widest">PIX</p>
+                    <p className="text-lg sm:text-xl font-black text-green-400">R$ {p.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
                     <p className="text-gray-600 text-[9px] sm:text-[10px]">12x R$ {(p.preco/12).toLocaleString("pt-BR",{maximumFractionDigits:2})}</p>
                   </div>
-                  <button onClick={()=>adicionarAoCarrinho(p)} disabled={p.estoque===0} className={`w-full py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wide transition-all btn-press ${p.estoque===0?"bg-white/5 text-gray-600 cursor-not-allowed":"bg-blue-600 hover:bg-blue-500 text-white"}`}>
+                  <button onClick={()=>adicionarAoCarrinho(p)} disabled={p.estoque===0} className={`w-full py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wide transition-all btn-press ${p.estoque===0?"bg-white/5 text-gray-600 cursor-not-allowed":"bg-purple-700 hover:bg-purple-600 text-white"}`}>
                     {p.estoque===0?"Esgotado":"+ Carrinho"}
                   </button>
                 </div>
@@ -305,38 +286,23 @@ export default function Home() {
         )}
       </main>
 
-      {/* Pedido Confirmado + PIX */}
+      {/* Pedido Confirmado */}
       {pedidoFinalizado&&(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="glass-modal rounded-3xl p-6 text-center max-w-sm w-full slide-up overflow-y-auto max-h-[95vh]">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-2xl mx-auto mb-3">✅</div>
-            <h2 className="text-lg font-black text-emerald-400 mb-1">Pedido #{pedidoFinalizado} confirmado!</h2>
-            <p className="text-gray-400 text-xs mb-4">Pague via PIX para confirmar o envio</p>
-            {gerandoPix&&(<div className="py-6 flex flex-col items-center gap-3"><span className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"/><p className="text-gray-500 text-sm">Gerando QR Code PIX...</p></div>)}
-            {pixData&&!gerandoPix&&(
-              <div className="space-y-3">
-                <div className="bg-white rounded-2xl p-3 mx-auto w-fit">
-                  {pixData.qr_code_image?(<img src={pixData.qr_code_image} alt="QR Code PIX" className="w-44 h-44 mx-auto"/>):(<div className="w-44 h-44 flex items-center justify-center bg-gray-100 rounded-xl"><p className="text-gray-400 text-xs">QR Code indisponível</p></div>)}
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1 uppercase font-black tracking-wider">PIX Copia e Cola</p>
-                  <p className="text-[10px] text-gray-400 break-all font-mono leading-relaxed">{pixData.qr_code?.slice(0,80)}...</p>
-                  <button onClick={()=>{navigator.clipboard.writeText(pixData.qr_code||"");setPixCopiado(true);setTimeout(()=>setPixCopiado(false),3000);}} className={`w-full mt-2 py-2.5 rounded-xl font-black text-sm transition-all btn-press ${pixCopiado?"bg-emerald-600":"bg-blue-600 hover:bg-blue-500"} text-white`}>
-                    {pixCopiado?"✅ Copiado!":"Copiar Código PIX"}
-                  </button>
-                </div>
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-left">
-                  <p className="text-amber-400 text-xs font-black mb-1">Como pagar:</p>
-                  <p className="text-gray-400 text-xs">1. Abra o app do seu banco</p>
-                  <p className="text-gray-400 text-xs">2. Escolha pagar via PIX → Ler QR Code ou Copia e Cola</p>
-                  <p className="text-emerald-400 text-xs font-bold mt-1">Total: R$ {pixData.total?.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
-                </div>
+          <div className="glass-modal rounded-3xl p-6 text-center max-w-sm w-full slide-up overflow-y-auto max-h-[90vh]">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-green-500/25 flex items-center justify-center text-2xl mx-auto mb-4">✅</div>
+            <h2 className="text-lg font-black text-green-400 mb-1">Pedido #{pedidoFinalizado}</h2>
+            <p className="text-gray-400 text-sm mb-4">Confirmado! Pague via PIX abaixo:</p>
+            {pixData ? (<>
+              {pixData.qr_code_image && <img src={pixData.qr_code_image} alt="QR Code PIX" className="w-48 h-48 mx-auto rounded-xl mb-3 bg-white p-2"/>}
+              <p className="text-xs text-gray-500 mb-2">Ou copie o código PIX:</p>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 mb-3">
+                <p className="text-xs text-gray-300 break-all select-all">{pixData.qr_code}</p>
               </div>
-            )}
-            {!gerandoPix&&!pixData&&(<div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-3"><p className="text-red-400 text-sm">Erro ao gerar PIX. Entre em contato.</p></div>)}
-            <button onClick={()=>{setPedidoFinalizado(null);setPixData(null);setPixCopiado(false);}} className="w-full mt-3 bg-white/6 hover:bg-white/10 border border-white/10 py-3 rounded-xl font-black text-sm transition-all btn-press text-gray-300">
-              Continuar Comprando
-            </button>
+              <button onClick={()=>navigator.clipboard.writeText(pixData.qr_code)} className="w-full bg-purple-700 hover:bg-purple-600 py-2.5 rounded-xl font-black text-xs mb-3 transition-all btn-press">📋 Copiar Código PIX</button>
+              <p className="text-green-400 font-black text-lg mb-4">Total: R$ {pixData.total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
+            </>):(<p className="text-gray-500 text-sm mb-4">Você receberá um email de confirmação.</p>)}
+            <button onClick={()=>{setPedidoFinalizado(null);setPixData(null);}} className="w-full bg-white/6 border border-white/10 hover:bg-white/10 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Continuar Comprando</button>
           </div>
         </div>
       )}
@@ -347,7 +313,7 @@ export default function Home() {
           <div className={`glass-modal w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl slide-up overflow-hidden`}>
             <div className="flex justify-between items-center px-5 pt-5 pb-4 border-b border-white/6">
               <div className="flex gap-1 bg-white/5 rounded-xl p-1">
-                {(["login","cadastro"] as const).map(t=><button key={t} onClick={()=>setTelaAuth(t)} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${telaAuth===t?"bg-blue-600 text-white":"text-gray-500 hover:text-gray-300"}`}>{t==="login"?"Entrar":"Cadastrar"}</button>)}
+                {(["login","cadastro"] as const).map(t=><button key={t} onClick={()=>setTelaAuth(t)} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${telaAuth===t?"bg-purple-700 text-white":"text-gray-500 hover:text-gray-300"}`}>{t==="login"?"Entrar":"Cadastrar"}</button>)}
               </div>
               <button onClick={()=>setLoginAberto(false)} className="text-gray-600 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/6 transition-all">✕</button>
             </div>
@@ -356,7 +322,7 @@ export default function Home() {
               {telaAuth==="cadastro"&&<><input placeholder="Nome completo *" value={authForm.nome} onChange={e=>setAuthForm({...authForm,nome:e.target.value})} className={inp}/><div className="grid grid-cols-2 gap-3"><input placeholder="Telefone *" value={authForm.telefone} onChange={e=>setAuthForm({...authForm,telefone:e.target.value})} className={inp}/><input placeholder="CPF *" value={authForm.cpf} onChange={e=>setAuthForm({...authForm,cpf:e.target.value})} className={inp}/></div></>}
               <input placeholder="Email *" type="email" value={authForm.email} onChange={e=>setAuthForm({...authForm,email:e.target.value})} className={inp}/>
               <input placeholder="Senha *" type="password" value={authForm.senha} onChange={e=>setAuthForm({...authForm,senha:e.target.value})} onKeyDown={e=>e.key==="Enter"&&(telaAuth==="login"?fazerLogin():fazerCadastro())} className={inp}/>
-              <button onClick={telaAuth==="login"?fazerLogin:fazerCadastro} disabled={authLoading} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-3 rounded-xl font-black text-sm transition-all btn-press flex items-center justify-center gap-2">
+              <button onClick={telaAuth==="login"?fazerLogin:fazerCadastro} disabled={authLoading} className="w-full bg-purple-700 hover:bg-purple-600 disabled:opacity-50 py-3 rounded-xl font-black text-sm transition-all btn-press flex items-center justify-center gap-2">
                 {authLoading?(<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/><span>Aguarde...</span></>):telaAuth==="login"?"Entrar":"Criar Conta"}
               </button>
             </div>
@@ -374,7 +340,7 @@ export default function Home() {
             </div>
             <div className="flex border-b border-white/6 flex-shrink-0">
               {(["dados","pedidos","rastreamento"] as const).map(aba=>(
-                <button key={aba} onClick={()=>setAbaPerfil(aba)} className={`flex-1 py-3 text-xs font-black uppercase tracking-wide transition-all ${abaPeril===aba?"text-blue-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
+                <button key={aba} onClick={()=>setAbaPerfil(aba)} className={`flex-1 py-3 text-xs font-black uppercase tracking-wide transition-all ${abaPeril===aba?"text-purple-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
                   {aba==="dados"?"📝 Dados":aba==="pedidos"?"📦 Pedidos":"🚚 Rastr."}
                 </button>
               ))}
@@ -391,12 +357,12 @@ export default function Home() {
                       <input placeholder="CPF" value={perfilForm.cpf} onChange={e=>setPerfilForm({...perfilForm,cpf:e.target.value})} className={inp}/>
                     </div>
                     <input value={usuario?.email||""} readOnly className={inpR}/>
-                    <button onClick={salvarPerfil} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Salvar</button>
+                    <button onClick={salvarPerfil} className="bg-purple-700 hover:bg-purple-600 px-6 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Salvar</button>
                   </div>
                   {enderecosSalvos.length>0&&(
                     <div className="space-y-2">
                       <p className="text-xs text-gray-600 uppercase font-black tracking-wider">Endereços Salvos</p>
-                      {enderecosSalvos.map(end=><div key={end.id} className={`${card} p-3 text-sm`}><p className="font-semibold text-gray-200">{end.logradouro}, {end.numero}</p><p className="text-gray-500 text-xs">{end.bairro} — {end.cidade}/{end.estado}</p>{end.principal&&<span className="text-emerald-400 text-xs font-bold">✓ Principal</span>}</div>)}
+                      {enderecosSalvos.map(end=><div key={end.id} className={`${card} p-3 text-sm`}><p className="font-semibold text-gray-200">{end.logradouro}, {end.numero}</p><p className="text-gray-500 text-xs">{end.bairro} — {end.cidade}/{end.estado}</p>{end.principal&&<span className="text-green-400 text-xs font-bold">✓ Principal</span>}</div>)}
                     </div>
                   )}
                   <div className="space-y-3 pt-4 border-t border-white/6">
@@ -416,12 +382,12 @@ export default function Home() {
                     <div key={p.id} onClick={()=>setPedidoSelecionado(pedidoSelecionado?.id===p.id?null:p)} className={`${card} glass-card-hover rounded-2xl overflow-hidden cursor-pointer transition-all`}>
                       <div className="flex items-center justify-between p-4">
                         <div><p className="font-black text-gray-200">Pedido #{p.id}</p><p className="text-gray-500 text-xs">{p.cidade}/{p.estado} · {p.frete_nome}</p></div>
-                        <div className="text-right"><span className={`inline-block px-2 py-1 rounded-lg text-xs font-black ${sBadge(p.status)}`}>{sIcon(p.status)} {p.status.toUpperCase()}</span><p className="text-emerald-400 font-black text-sm mt-1">R$ {p.total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p></div>
+                        <div className="text-right"><span className={`inline-block px-2 py-1 rounded-lg text-xs font-black ${sBadge(p.status)}`}>{sIcon(p.status)} {p.status.toUpperCase()}</span><p className="text-green-400 font-black text-sm mt-1">R$ {p.total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p></div>
                       </div>
                       {pedidoSelecionado?.id===p.id&&(
                         <div className="border-t border-white/6 p-4 space-y-2 fade-in bg-white/2">
                           {p.itens?.map((it:any,i:number)=><p key={i} className="text-sm text-gray-400">• Produto #{it.product_id} — {it.quantidade}x — R$ {it.preco_unitario.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>)}
-                          {p.codigo_rastreio&&<div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mt-2"><p className="text-xs text-blue-400 font-black mb-1">📦 RASTREIO</p><p className="font-black text-white">{p.codigo_rastreio}</p></div>}
+                          {p.codigo_rastreio&&<div className="bg-blue-500/10 border border-purple-500/20 rounded-xl p-3 mt-2"><p className="text-xs text-purple-400 font-black mb-1">📦 RASTREIO</p><p className="font-black text-white">{p.codigo_rastreio}</p></div>}
                           {p.status==="pendente"&&<button onClick={e=>{e.stopPropagation();cancelarPedido(p.id);}} className="text-xs text-red-400 border border-red-400/20 px-4 py-2 rounded-lg hover:bg-red-400/10 transition-all btn-press mt-2">Cancelar Pedido</button>}
                         </div>
                       )}
@@ -439,7 +405,7 @@ export default function Home() {
                           <div key={i} className="flex items-center gap-3"><div className={`w-3 h-3 rounded-full flex-shrink-0 ${e.d?"bg-emerald-500":"bg-white/10"}`}/><p className={`text-sm ${e.d?"text-gray-200 font-semibold":"text-gray-600"}`}>{e.l}</p></div>
                         ))}
                       </div>
-                      {p.codigo_rastreio&&<div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4"><p className="text-xs text-blue-400 font-black uppercase tracking-wider mb-1">Código de Rastreio</p><p className="font-black text-white text-lg tracking-widest">{p.codigo_rastreio}</p><a href={`https://www.correios.com.br/rastreamento#${p.codigo_rastreio}`} target="_blank" className="inline-block mt-2 text-xs text-blue-400 hover:text-blue-300 underline transition-all">Rastrear nos Correios →</a></div>}
+                      {p.codigo_rastreio&&<div className="bg-blue-500/10 border border-purple-500/20 rounded-xl p-4"><p className="text-xs text-purple-400 font-black uppercase tracking-wider mb-1">Código de Rastreio</p><p className="font-black text-white text-lg tracking-widest">{p.codigo_rastreio}</p><a href={`https://www.correios.com.br/rastreamento#${p.codigo_rastreio}`} target="_blank" className="inline-block mt-2 text-xs text-purple-400 hover:text-blue-300 underline transition-all">Rastrear nos Correios →</a></div>}
                       <p className="text-xs text-gray-600 mt-3">Prazo: {p.frete_prazo} dia{p.frete_prazo>1?"s":""} útil{p.frete_prazo>1?"eis":""}</p>
                     </div>
                   ))}
@@ -456,7 +422,7 @@ export default function Home() {
           <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={()=>setCarrinhoAberto(false)}/>
           <div className="w-full sm:w-96 glass-sidebar h-full flex flex-col slide-in">
             <div className="flex justify-between items-center px-5 py-4 border-b border-white/6">
-              <div><h2 className="font-black text-lg">Carrinho</h2>{usuario&&<p className="text-xs text-emerald-400">☁️ Sincronizado</p>}</div>
+              <div><h2 className="font-black text-lg">Carrinho</h2>{usuario&&<p className="text-xs text-green-400">☁️ Sincronizado</p>}</div>
               <button onClick={()=>setCarrinhoAberto(false)} className="text-gray-600 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/6 transition-all">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -465,7 +431,7 @@ export default function Home() {
                   <img src={item.produto.imagem_url} alt={item.produto.nome} className="w-16 h-16 object-contain rounded-xl bg-black/40 flex-shrink-0 p-1"/>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-gray-200 line-clamp-2 leading-tight">{item.produto.nome}</p>
-                    <p className="text-emerald-400 font-black text-sm mt-1">R$ {(item.produto.preco*item.quantidade).toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
+                    <p className="text-green-400 font-black text-sm mt-1">R$ {(item.produto.preco*item.quantidade).toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <button onClick={()=>alterarQuantidade(item.produto.id,-1)} className="w-7 h-7 rounded-lg bg-white/8 hover:bg-white/15 transition-all text-sm font-black flex items-center justify-center btn-press">−</button>
                       <span className="text-sm font-black w-4 text-center text-gray-200">{item.quantidade}</span>
@@ -478,9 +444,9 @@ export default function Home() {
             </div>
             {carrinho.length>0&&(
               <div className="p-4 border-t border-white/6 space-y-3">
-                <div className="flex justify-between items-center"><span className="text-gray-500 text-sm">Subtotal</span><span className="font-black text-emerald-400 text-lg">R$ {totalProdutos.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span></div>
-                {!usuario&&<button onClick={()=>{setCarrinhoAberto(false);setLoginAberto(true);}} className="w-full border border-blue-500/25 text-blue-400 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-500/10 transition-all btn-press">☁️ Entrar para sincronizar</button>}
-                <button onClick={()=>{setCarrinhoAberto(false);setCheckoutAberto(true);}} className="w-full bg-emerald-600 hover:bg-emerald-500 py-3.5 rounded-xl font-black text-sm transition-all btn-press">Finalizar Compra →</button>
+                <div className="flex justify-between items-center"><span className="text-gray-500 text-sm">Subtotal</span><span className="font-black text-green-400 text-lg">R$ {totalProdutos.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span></div>
+                {!usuario&&<button onClick={()=>{setCarrinhoAberto(false);setLoginAberto(true);}} className="w-full border border-purple-500/25 text-purple-400 py-2.5 rounded-xl text-xs font-bold hover:bg-purple-600/10 transition-all btn-press">☁️ Entrar para sincronizar</button>}
+                <button onClick={()=>{setCarrinhoAberto(false);setCheckoutAberto(true);}} className="w-full bg-green-600 hover:bg-green-500 py-3.5 rounded-xl font-black text-sm transition-all btn-press">Finalizar Compra →</button>
               </div>
             )}
           </div>
@@ -507,12 +473,12 @@ export default function Home() {
                 <div className="space-y-2">
                   <p className="text-xs text-gray-600 uppercase font-black tracking-wider">📍 Endereços Salvos</p>
                   {enderecosSalvos.map(end=>(
-                    <label key={end.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${usarEnderecoSalvo?.id===end.id?"border-blue-500/60 bg-blue-500/10":"border-white/8 bg-white/3 hover:border-white/15"}`}>
+                    <label key={end.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${usarEnderecoSalvo?.id===end.id?"border-purple-500/60 bg-blue-500/10":"border-white/8 bg-white/3 hover:border-white/15"}`}>
                       <input type="radio" name="end" checked={usarEnderecoSalvo?.id===end.id} onChange={()=>usarEndereco(end)} className="accent-blue-500"/>
                       <div className="text-sm"><p className="font-semibold text-gray-200">{end.logradouro}, {end.numero}</p><p className="text-gray-500 text-xs">{end.cidade}/{end.estado}</p></div>
                     </label>
                   ))}
-                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${!usarEnderecoSalvo?"border-blue-500/60 bg-blue-500/10":"border-white/8 bg-white/3 hover:border-white/15"}`}>
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${!usarEnderecoSalvo?"border-purple-500/60 bg-blue-500/10":"border-white/8 bg-white/3 hover:border-white/15"}`}>
                     <input type="radio" name="end" checked={!usarEnderecoSalvo} onChange={()=>{setUsarEnderecoSalvo(null);setEndereco(null);setOpcoesFretes([]);}} className="accent-blue-500"/>
                     <p className="text-sm font-semibold text-gray-200">+ Novo endereço</p>
                   </label>
@@ -523,7 +489,7 @@ export default function Home() {
                   <p className="text-xs text-gray-600 uppercase font-black tracking-wider">📍 Endereço de Entrega</p>
                   <div className="flex gap-2">
                     <input placeholder="CEP *" value={cep} onChange={e=>setCep(e.target.value)} onKeyDown={e=>e.key==="Enter"&&buscarCep()} className={inp}/>
-                    <button onClick={buscarCep} disabled={buscandoCep} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-5 py-3 rounded-xl font-black text-sm transition-all btn-press whitespace-nowrap flex items-center gap-2 min-w-[80px] justify-center">
+                    <button onClick={buscarCep} disabled={buscandoCep} className="bg-purple-700 hover:bg-purple-600 disabled:opacity-50 px-5 py-3 rounded-xl font-black text-sm transition-all btn-press whitespace-nowrap flex items-center gap-2 min-w-[80px] justify-center">
                       {buscandoCep?<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>:"Buscar"}
                     </button>
                   </div>
@@ -532,7 +498,7 @@ export default function Home() {
                       <input value={endereco.logradouro} readOnly className={inpR}/>
                       <div className="grid grid-cols-2 gap-3"><input placeholder="Número *" value={form.numero} onChange={e=>setForm({...form,numero:e.target.value})} className={inp}/><input placeholder="Complemento" value={form.complemento} onChange={e=>setForm({...form,complemento:e.target.value})} className={inp}/></div>
                       <div className="grid grid-cols-3 gap-3"><input value={endereco.bairro} readOnly className={inpR}/><input value={endereco.localidade} readOnly className={inpR}/><input value={endereco.uf} readOnly className={inpR}/></div>
-                      {usuario&&<button onClick={salvarEnderecoAtual} className="text-xs text-blue-400 hover:text-blue-300 transition-all">💾 Salvar endereço</button>}
+                      {usuario&&<button onClick={salvarEnderecoAtual} className="text-xs text-purple-400 hover:text-blue-300 transition-all">💾 Salvar endereço</button>}
                     </div>
                   )}
                 </div>
@@ -541,9 +507,9 @@ export default function Home() {
                 <div className="space-y-2">
                   <p className="text-xs text-gray-600 uppercase font-black tracking-wider">🚚 Frete</p>
                   {opcoesFretes.map(o=>(
-                    <label key={o.nome} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${freteSelecionado?.nome===o.nome?"border-blue-500/60 bg-blue-500/10":"border-white/8 bg-white/3 hover:border-white/15"}`}>
+                    <label key={o.nome} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${freteSelecionado?.nome===o.nome?"border-purple-500/60 bg-blue-500/10":"border-white/8 bg-white/3 hover:border-white/15"}`}>
                       <div className="flex items-center gap-3"><input type="radio" name="frete" checked={freteSelecionado?.nome===o.nome} onChange={()=>setFreteSelecionado(o)} className="accent-blue-500"/><div><p className="font-black text-sm text-gray-200">{o.nome}</p><p className="text-gray-500 text-xs">{o.prazo} dia{o.prazo>1?"s":""} útil{o.prazo>1?"eis":""}</p></div></div>
-                      <span className="font-black text-emerald-400 text-sm">R$ {o.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span>
+                      <span className="font-black text-green-400 text-sm">R$ {o.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span>
                     </label>
                   ))}
                 </div>
@@ -552,11 +518,11 @@ export default function Home() {
                 <p className="text-xs text-gray-600 uppercase font-black tracking-wider mb-3">🧾 Resumo</p>
                 {carrinho.map(i=><div key={i.produto.id} className="flex justify-between text-sm text-gray-400"><span className="line-clamp-1 flex-1 mr-2">{i.produto.nome} ×{i.quantidade}</span><span className="flex-shrink-0">R$ {(i.produto.preco*i.quantidade).toLocaleString("pt-BR",{minimumFractionDigits:2})}</span></div>)}
                 <div className="flex justify-between text-sm text-gray-500 pt-2 border-t border-white/6"><span>Frete ({freteSelecionado?.nome??"—"})</span><span>R$ {(freteSelecionado?.preco??0).toLocaleString("pt-BR",{minimumFractionDigits:2})}</span></div>
-                <div className="flex justify-between font-black pt-2 border-t border-white/6"><span className="text-gray-200">Total</span><span className="text-emerald-400 text-lg">R$ {totalFinal.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span></div>
+                <div className="flex justify-between font-black pt-2 border-t border-white/6"><span className="text-gray-200">Total</span><span className="text-green-400 text-lg">R$ {totalFinal.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span></div>
               </div>
             </div>
             <div className="px-5 pb-5 pt-4 border-t border-white/6 flex-shrink-0">
-              <button onClick={finalizarPedido} disabled={!freteSelecionado||enviando} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed py-4 rounded-xl font-black text-sm transition-all btn-press flex items-center justify-center gap-3">
+              <button onClick={finalizarPedido} disabled={!freteSelecionado||enviando} className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed py-4 rounded-xl font-black text-sm transition-all btn-press flex items-center justify-center gap-3">
                 {enviando?(<><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/><span>Processando...</span></>):"✅ Confirmar Pedido"}
               </button>
             </div>
