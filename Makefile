@@ -49,7 +49,7 @@ help:
 	@echo "$(GREEN)🛠️  UTILIDADES$(NC)"
 	@echo "  make importar-produtos CSV=arquivo.csv → Importa produtos"
 	@echo "  make backup-db       → Faz backup do banco"
-	@echo "  make limpar          → Remove imagens e volumes não usados"
+	@echo "  make limpar          → Remove imagens e volumes não usados\n  make tornar-admin admin=email → Torna usuário admin"
 	@echo ""
 
 # ============================================================
@@ -172,3 +172,14 @@ limpar:
 	docker system prune -f
 	docker volume prune -f
 	@echo "$(GREEN)✅ Limpeza concluída!$(NC)"
+
+.PHONY: tornar-admin
+
+tornar-admin:
+	@if [ -z "$(admin)" ]; then \
+		echo "❌ Informe: make tornar-admin admin=email@gmail.com"; \
+		exit 1; \
+	fi
+	@echo "👑 Tornando $(admin) admin..."
+	docker exec ecommerce_db psql -U admin -d jc_games_db -c "UPDATE usuarios SET is_admin = TRUE WHERE email = '$(admin)';"
+	@echo "✅ $(admin) agora é admin!"
