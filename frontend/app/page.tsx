@@ -79,18 +79,24 @@ export default function Home() {
   }, [token, produtos]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const addId = params.get("add");
-      if (addId) {
-        fetch(`${API}/produtos`).then(r => r.json()).then(data => {
-          const p = data.find((p: Produto) => p.id === parseInt(addId));
-          if (p && p.estoque > 0) { adicionarAoCarrinho(p); }
-          window.history.replaceState({}, "", "/");
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const addId = params.get("add");
+    if (!addId) return;
+    fetch(`${API}/produtos`).then(r => r.json()).then(data => {
+      const p = data.find((p: Produto) => p.id === parseInt(addId));
+      if (p && p.estoque > 0) {
+        setCarrinho(prev => {
+          const ex = prev.find(i => i.produto.id === p.id);
+          const novo = ex ? prev.map(i => i.produto.id===p.id?{...i,quantidade:i.quantidade+1}:i) : [...prev,{produto:p,quantidade:1}];
+          localStorage.setItem("carrinho", JSON.stringify(novo));
+          return novo;
         });
+        setCarrinhoAberto(true);
       }
-    }
-  }, [produtos]);
+      window.history.replaceState({}, "", "/");
+    });
+  }, []);
 
   useEffect(() => {
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
