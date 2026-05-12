@@ -87,6 +87,7 @@ class Usuario(BaseModel):
     telefone: str
     cpf: str
     is_admin: bool = False
+    is_superadmin: bool = False
     class Config:
         from_attributes = True
 

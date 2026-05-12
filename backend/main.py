@@ -579,15 +579,15 @@ def configs_publicas(db: Session = Depends(get_db)):
     return {c.chave: c.valor for c in configs}
 @app.get("/admin/configuracoes")
 def listar_configuracoes(usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
-    if not usuario or not usuario.is_admin:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    if not usuario or not usuario.is_superadmin:
+        raise HTTPException(status_code=403, detail="Acesso negado — apenas Super Admin")
     configs = db.query(models.Configuracao).all()
     return {c.chave: {"valor": c.valor, "descricao": c.descricao} for c in configs}
 
 @app.put("/admin/configuracoes")
 def salvar_configuracoes(dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
-    if not usuario or not usuario.is_admin:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    if not usuario or not usuario.is_superadmin:
+        raise HTTPException(status_code=403, detail="Acesso negado — apenas Super Admin")
     for chave, valor in dados.items():
         config = db.query(models.Configuracao).filter(models.Configuracao.chave == chave).first()
         if config:
@@ -602,9 +602,17 @@ def tornar_admin(dados: dict, usuario = Depends(get_usuario_atual), db: Session 
     if not usuario or not usuario.is_admin:
         raise HTTPException(status_code=403, detail="Acesso negado")
     email = dados.get("email", "").strip()
+    nivel = dados.get("nivel", "admin")
     u = db.query(models.Usuario).filter(models.Usuario.email == email).first()
     if not u:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    u.is_admin = True
+    if nivel == "superadmin":
+        if not usuario.is_superadmin:
+            raise HTTPException(status_code=403, detail="Apenas Super Admins podem criar Super Admins")
+        u.is_superadmin = True
+        u.is_admin = True
+    else:
+        u.is_admin = True
+        u.is_superadmin = False
     db.commit()
-    return {"ok": True, "email": email}
+    return {"ok": True, "email": email, "nivel": nivel}

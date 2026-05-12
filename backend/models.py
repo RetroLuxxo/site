@@ -11,6 +11,7 @@ class Usuario(Base):
     senha_hash = Column(String, default="")
     ativo = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
+    is_superadmin = Column(Boolean, default=False)
 
 class Endereco(Base):
     __tablename__ = "enderecos"

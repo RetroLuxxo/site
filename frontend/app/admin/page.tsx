@@ -6,6 +6,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? 
 type Pedido = { id: number; nome: string; email: string; telefone: string; status: string; total: number; frete_nome: string; cidade: string; estado: string; itens: any[]; codigo_rastreio?: string; };
 type Produto = { id: number; nome: string; preco: number; estoque: number; imagem_url: string; descricao: string; };
 type Dashboard = { total_pedidos: number; pendentes: number; enviados: number; entregues: number; cancelados: number; total_faturado: number; total_usuarios: number; total_produtos: number; };
+type UsuarioAdmin = { id: number; email: string; nome: string; is_admin: boolean; is_superadmin: boolean; };
 
 export default function Admin() {
   const [token, setToken] = useState("");
@@ -20,6 +21,7 @@ export default function Admin() {
   const [msg, setMsg] = useState("");
   const [configs, setConfigs] = useState<Record<string,{valor:string;descricao:string}>>({});
   const [salvandoConfig, setSalvandoConfig] = useState(false);
+  const [dadosUsuario, setDadosUsuario] = useState<UsuarioAdmin|null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [enviandoStatus, setEnviandoStatus] = useState(false);
   const [novoProduto, setNovoProduto] = useState({ nome: "", descricao: "", preco: "", imagem_url: "", estoque: "", peso_kg: "0.5", comprimento_cm: "15", largura_cm: "15", altura_cm: "15" });
@@ -75,6 +77,8 @@ export default function Admin() {
         fetch(`${API}/admin/configuracoes`, { headers: H(tk) }).then(r => r.ok ? r.json() : {}),
       ]);
       if (!dash) { window.location.href = "/"; return; }
+      const me = await fetch(`${API}/auth/me`, { headers: H(tk) });
+      if (me.ok) setDadosUsuario(await me.json());
       setDashboard(dash); setPedidos(peds); setProdutos(prods); setConfigs(cfgs);
     } finally { setLoading(false); }
   };
@@ -200,7 +204,7 @@ export default function Admin() {
       {/* ABAS */}
       <div className="glass border-b border-white/5">
         <div className="max-w-7xl mx-auto flex">
-          {(["dashboard","pedidos","produtos","configuracoes"] as const).map(a => (
+          {(["dashboard","pedidos","produtos",...(dadosUsuario?.is_superadmin ? ["configuracoes"] : [])] as const).map((a: any) => (
             <button key={a} onClick={() => setAba(a)}
               className={`flex-1 py-3.5 text-xs font-black uppercase tracking-wide transition-all ${aba===a?"text-blue-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
               {a==="dashboard"?"📊 Dashboard":a==="pedidos"?"📦 Pedidos":a==="produtos"?"🛍️ Produtos":"⚙️ Config"}
@@ -419,14 +423,28 @@ export default function Admin() {
                 onClick={async()=>{
                   const email=(document.getElementById("emailAdmin") as HTMLInputElement).value;
                   if(!email){showMsg("❌ Digite um email!");return;}
-                  const r=await fetch(`${API}/admin/tornar-admin`,{method:"POST",headers:H(token),body:JSON.stringify({email})});
-                  if(r.ok){showMsg(`✅ ${email} agora é admin!`);}
+                  const r=await fetch(`${API}/admin/tornar-admin`,{method:"POST",headers:H(token),body:JSON.stringify({email,nivel:"admin"})});
+                  if(r.ok){showMsg(`✅ ${email} agora é Admin!`);}
                   else{const d=await r.json();showMsg(`❌ ${d.detail}`);}
                 }}
                 className="bg-purple-700 hover:bg-purple-600 px-4 py-3 rounded-xl font-black text-sm transition-all whitespace-nowrap"
               >
-                👑 Tornar Admin
+                👑 Admin
               </button>
+              {dadosUsuario?.is_superadmin && (
+              <button
+                onClick={async()=>{
+                  const email=(document.getElementById("emailAdmin") as HTMLInputElement).value;
+                  if(!email){showMsg("❌ Digite um email!");return;}
+                  const r=await fetch(`${API}/admin/tornar-admin`,{method:"POST",headers:H(token),body:JSON.stringify({email,nivel:"superadmin"})});
+                  if(r.ok){showMsg(`✅ ${email} agora é Super Admin!`);}
+                  else{const d=await r.json();showMsg(`❌ ${d.detail}`);}
+                }}
+                className="bg-yellow-600 hover:bg-yellow-500 px-4 py-3 rounded-xl font-black text-sm transition-all whitespace-nowrap"
+              >
+                ⭐ Super Admin
+              </button>
+              )}
             </div>
           </div>
 
