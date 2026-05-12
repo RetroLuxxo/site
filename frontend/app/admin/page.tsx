@@ -357,8 +357,13 @@ export default function Admin() {
               {k:"cloudinary_preset",label:"Upload Preset",tipo:"text"},
             ]},
             {titulo:"🏪 Loja", chaves:[
+              {k:"loja_logo",label:"Logo da Loja",tipo:"logo"},
               {k:"loja_nome",label:"Nome da Loja",tipo:"text"},
               {k:"loja_descricao",label:"Descrição",tipo:"text"},
+            ]},
+            {titulo:"🎨 Visual", chaves:[
+              {k:"loja_cor_primaria",label:"Cor Primária",tipo:"color"},
+              {k:"loja_cor_fundo",label:"Cor de Fundo",tipo:"color"},
             ]},
           ].map(secao=>(
             <div key={secao.titulo} className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-3">
@@ -366,7 +371,25 @@ export default function Admin() {
               {secao.chaves.map(({k,label,tipo})=>(
                 <div key={k}>
                   <p className="text-xs text-gray-500 mb-1">{label}</p>
-                  <input type={tipo} value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder={configs[k]?.descricao||label}/>
+                  {k==="loja_logo" ? (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input type="text" value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder="URL da logo"/>
+                        <label className="cursor-pointer bg-purple-700 hover:bg-purple-600 px-3 py-3 rounded-xl text-xs font-black whitespace-nowrap flex-shrink-0">
+                          {uploadando?"⏳":"📤"}
+                          <input type="file" accept="image/*" className="hidden" onChange={e=>{if(e.target.files)uploadImagem(e.target.files[0],url=>setConfigs(prev=>({...prev,loja_logo:{...prev.loja_logo,valor:url}})));}}/>
+                        </label>
+                      </div>
+                      {configs[k]?.valor&&<img src={configs[k].valor} alt="Logo" className="h-12 object-contain rounded-lg bg-black/40 p-1"/>}
+                    </div>
+                  ) : tipo==="color" ? (
+                    <div className="flex gap-3 items-center">
+                      <input type="color" value={configs[k]?.valor||"#8B2FC9"} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-12 h-12 rounded-xl cursor-pointer border-0 bg-transparent"/>
+                      <input type="text" value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="flex-1 bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder="#8B2FC9"/>
+                    </div>
+                  ) : (
+                    <input type={tipo} value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder={configs[k]?.descricao||label}/>
+                  )}
                 </div>
               ))}
             </div>

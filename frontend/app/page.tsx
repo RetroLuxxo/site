@@ -28,6 +28,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [lojaNome, setLojaNome] = useState("JC GAMES STORE");
   const [lojaDesc, setLojaDesc] = useState("Hardware de Elite");
+  const [lojaLogo, setLojaLogo] = useState("/favicon.png");
+  const [lojaCorPrimaria, setLojaCorPrimaria] = useState("#8B2FC9");
+  const [lojaCorFundo, setLojaCorFundo] = useState("#0a0010");
   const [sincronizando, setSincronizando] = useState(false);
   const [menuMobile, setMenuMobile] = useState(false);
 
@@ -93,6 +96,9 @@ export default function Home() {
       fetch(`${API}/configuracoes/loja`).then(r => r.ok?r.json():{}).then((cfg: Record<string,string>) => {
         if(cfg.loja_nome) setLojaNome(cfg.loja_nome);
         if(cfg.loja_descricao) setLojaDesc(cfg.loja_descricao);
+        if(cfg.loja_logo) setLojaLogo(cfg.loja_logo);
+        if(cfg.loja_cor_primaria) setLojaCorPrimaria(cfg.loja_cor_primaria);
+        if(cfg.loja_cor_fundo) setLojaCorFundo(cfg.loja_cor_fundo);
       }).catch(()=>{});
       const p = data.find((p: Produto) => p.id === parseInt(addId));
       if (p && p.estoque > 0) {
@@ -113,6 +119,9 @@ export default function Home() {
       fetch(`${API}/configuracoes/loja`).then(r => r.ok?r.json():{}).then((cfg: Record<string,string>) => {
         if(cfg.loja_nome) setLojaNome(cfg.loja_nome);
         if(cfg.loja_descricao) setLojaDesc(cfg.loja_descricao);
+        if(cfg.loja_logo) setLojaLogo(cfg.loja_logo);
+        if(cfg.loja_cor_primaria) setLojaCorPrimaria(cfg.loja_cor_primaria);
+        if(cfg.loja_cor_fundo) setLojaCorFundo(cfg.loja_cor_fundo);
       }).catch(()=>{});
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
@@ -226,7 +235,7 @@ export default function Home() {
   const card="bg-white/4 border border-white/8 rounded-2xl";
 
   return (
-    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(135deg,#0a0010 0%,#130020 50%,#0a0010 100%)"}}>
+    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:lojaCorFundo}}>
       <style>{`
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
@@ -260,7 +269,7 @@ export default function Home() {
       <header className="glass-header sticky top-0 z-50">
         <div className="max-w-[1600px] mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
-            <img src="/logo.png" alt="JC Games" className="w-8 h-8 object-contain rounded-lg"/>
+            <img src={lojaLogo} alt={lojaNome} className="w-8 h-8 object-contain rounded-lg"/>
             <span className="font-black text-base sm:text-lg tracking-tight hidden sm:block"><span className="text-purple-400">{lojaNome.split(" ").slice(0,-1).join(" ")||"JC GAMES"}</span><span className="text-white/90"> {lojaNome.split(" ").slice(-1)[0]||"STORE"}</span></span>
           </a>
           <div className="flex-1 max-w-md hidden md:block">
