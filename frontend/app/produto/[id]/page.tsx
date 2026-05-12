@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 
-const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? window.location.protocol + "//" + window.location.hostname + ":8000" : "http://localhost:8000");
+const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? (window.location.port === "3000" ? window.location.protocol + "//" + window.location.hostname + ":8000" : window.location.protocol + "//" + window.location.host) : "http://localhost:8000");
 
 type Produto = { id: number; nome: string; descricao: string; preco: number; imagem_url: string; fotos: string[]; estoque: number; peso_kg: number; };
 type Avaliacao = { id: number; nome: string; estrelas: number; comentario: string; };

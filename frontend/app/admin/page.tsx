@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? window.location.protocol + "//" + window.location.hostname + ":8000" : "http://localhost:8000");
+const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? (window.location.port === "3000" ? window.location.protocol + "//" + window.location.hostname + ":8000" : window.location.protocol + "//" + window.location.host) : "http://localhost:8000");
 
 type Pedido = { id: number; nome: string; email: string; telefone: string; status: string; total: number; frete_nome: string; cidade: string; estado: string; itens: any[]; codigo_rastreio?: string; };
 type Produto = { id: number; nome: string; preco: number; estoque: number; imagem_url: string; descricao: string; };
@@ -405,6 +405,31 @@ export default function Admin() {
               ))}
             </div>
           ))}
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-3">
+            <p className="font-black text-sm text-purple-400 mb-2">👑 Gerenciar Admins</p>
+            <p className="text-xs text-gray-500">Digite o email de um usuário cadastrado para torná-lo admin</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="email@exemplo.com"
+                id="emailAdmin"
+                className="flex-1 bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all"
+              />
+              <button
+                onClick={async()=>{
+                  const email=(document.getElementById("emailAdmin") as HTMLInputElement).value;
+                  if(!email){showMsg("❌ Digite um email!");return;}
+                  const r=await fetch(`${API}/admin/tornar-admin`,{method:"POST",headers:H(token),body:JSON.stringify({email})});
+                  if(r.ok){showMsg(`✅ ${email} agora é admin!`);}
+                  else{const d=await r.json();showMsg(`❌ ${d.detail}`);}
+                }}
+                className="bg-purple-700 hover:bg-purple-600 px-4 py-3 rounded-xl font-black text-sm transition-all whitespace-nowrap"
+              >
+                👑 Tornar Admin
+              </button>
+            </div>
+          </div>
+
           <button onClick={salvarConfigs} disabled={salvandoConfig} className="w-full bg-purple-700 hover:bg-purple-600 disabled:opacity-50 py-4 rounded-xl font-black text-sm transition-all">
             {salvandoConfig?"Salvando...":"💾 Salvar Configurações"}
           </button>

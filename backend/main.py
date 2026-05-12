@@ -596,3 +596,15 @@ def salvar_configuracoes(dados: dict, usuario = Depends(get_usuario_atual), db: 
             db.add(models.Configuracao(chave=chave, valor=str(valor)))
     db.commit()
     return {"ok": True}
+
+@app.post("/admin/tornar-admin")
+def tornar_admin(dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    email = dados.get("email", "").strip()
+    u = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    u.is_admin = True
+    db.commit()
+    return {"ok": True, "email": email}
