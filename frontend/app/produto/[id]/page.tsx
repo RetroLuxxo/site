@@ -1,0 +1,155 @@
+"use client";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://192.168.18.23:8000";
+
+type Produto = { id: number; nome: string; descricao: string; preco: number; imagem_url: string; fotos: string[]; estoque: number; peso_kg: number; };
+type Avaliacao = { id: number; nome: string; estrelas: number; comentario: string; };
+
+export default function ProdutoPage() {
+  const { id } = useParams();
+  const [produto, setProduto] = useState<Produto | null>(null);
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [fotoAtiva, setFotoAtiva] = useState(0);
+  const [avForm, setAvForm] = useState({ nome: "", estrelas: 5, comentario: "" });
+  const [enviandoAv, setEnviandoAv] = useState(false);
+  const [avMsg, setAvMsg] = useState("");
+  const [qtdCarrinho, setQtdCarrinho] = useState(0);
+  const [adicionado, setAdicionado] = useState(false);
+
+  useEffect(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem("carrinho") || "[]");
+      const item = c.find((i: any) => i.produto?.id === parseInt(id as string));
+      setQtdCarrinho(item ? item.quantidade : 0);
+    } catch {}
+  }, [id]);
+
+  useEffect(() => {
+    fetch(`${API}/produtos`).then(r => r.json()).then(data => {
+      const p = data.find((p: Produto) => p.id === parseInt(id as string));
+      if (p) setProduto(p);
+    });
+    fetch(`${API}/produtos/${id}/avaliacoes`).then(r => r.json()).then(setAvaliacoes).catch(() => {});
+  }, [id]);
+
+  const enviarAvaliacao = async () => {
+    if (!avForm.nome.trim() || !avForm.comentario.trim()) { setAvMsg("Preencha nome e comentario!"); return; }
+    setEnviandoAv(true);
+    try {
+      const r = await fetch(`${API}/produtos/${id}/avaliacoes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(avForm) });
+      if (r.ok) { const av = await r.json(); setAvaliacoes(prev => [...prev, av]); setAvForm({ nome: "", estrelas: 5, comentario: "" }); setAvMsg("Avaliacao enviada!"); }
+    } finally { setEnviandoAv(false); setTimeout(() => setAvMsg(""), 3000); }
+  };
+
+  const mediaEstrelas = avaliacoes.length > 0 ? (avaliacoes.reduce((s, a) => s + a.estrelas, 0) / avaliacoes.length).toFixed(1) : null;
+  const todasFotos = produto ? [produto.imagem_url, ...(produto.fotos || [])].filter(Boolean) : [];
+
+  if (!produto) return (
+    <div className="min-h-screen flex items-center justify-center" style={{background:"linear-gradient(135deg,#0a0010 0%,#130020 50%,#0a0010 100%)"}}>
+      <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"/>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(135deg,#0a0010 0%,#130020 50%,#0a0010 100%)"}}>
+      <header className="sticky top-0 z-50" style={{background:"rgba(10,0,20,0.90)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(139,47,201,0.2)"}}>
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-4">
+          <a href="/" className="flex items-center gap-2">
+            <img src="/favicon.png" alt="JC Games" className="w-8 h-8 object-contain rounded-lg"/>
+            <span className="font-black text-lg"><span className="text-purple-400">JC GAMES</span><span className="text-white/90"> STORE</span></span>
+          </a>
+          <a href="/" className="ml-4 text-sm text-gray-400 hover:text-purple-400 transition-all">voltar</a>
+        </div>
+      </header>
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          <div>
+            <div className="relative rounded-2xl overflow-hidden mb-3" style={{background:"#ffffff",height:"400px"}}>
+              <img src={todasFotos[fotoAtiva]||produto.imagem_url} alt={produto.nome} className="w-full h-full object-contain p-6"/>
+            </div>
+            {todasFotos.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {todasFotos.map((foto, i) => (
+                  <button key={i} onClick={() => setFotoAtiva(i)} className={"flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all " + (fotoAtiva===i?"border-purple-500":"border-white/10")} style={{background:"#fff"}}>
+                    <img src={foto} alt="" className="w-full h-full object-contain p-1"/>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-black text-white leading-tight">{produto.nome}</h1>
+            {mediaEstrelas && (
+              <div className="flex items-center gap-2">
+                <div className="flex">{[1,2,3,4,5].map(s=><span key={s} className={s<=Math.round(parseFloat(mediaEstrelas))?"text-yellow-400":"text-gray-600"}>&#9733;</span>)}</div>
+                <span className="text-sm text-gray-400">{mediaEstrelas} ({avaliacoes.length} avaliacoes)</span>
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-purple-400/70 font-bold uppercase tracking-widest">PIX</p>
+              <p className="text-4xl font-black text-green-400">R$ {produto.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
+              <p className="text-gray-500 text-sm">12x R$ {(produto.preco/12).toLocaleString("pt-BR",{maximumFractionDigits:2})}</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+              <p className="text-sm text-gray-300 leading-relaxed">{produto.descricao}</p>
+            </div>
+            <div className="bg-white/3 border border-white/8 rounded-xl p-3 text-xs text-gray-500 space-y-1">
+              <p>Peso: {produto.peso_kg}kg</p>
+              <p>Estoque: {produto.estoque} unidade{produto.estoque!==1?"s":""}</p>
+            </div>
+            <div className="space-y-2">
+              {qtdCarrinho > 0 && (
+                <div className="bg-purple-700/20 border border-purple-500/30 rounded-xl px-4 py-2 text-sm text-purple-300 text-center font-bold">
+                  {qtdCarrinho}x no carrinho
+                </div>
+              )}
+              {qtdCarrinho >= produto.estoque ? (
+                <div className="w-full bg-white/5 border border-white/10 py-4 rounded-xl font-black text-center text-sm text-gray-500">
+                  {produto.estoque === 0 ? "Esgotado" : "Limite atingido"}
+                </div>
+              ) : (
+                <a href={`/?add=${produto.id}`} onClick={()=>setAdicionado(true)} className={"block w-full py-4 rounded-xl font-black text-center text-sm transition-all " + (adicionado?"bg-green-600":"bg-purple-700 hover:bg-purple-600")}>
+                  {adicionado ? "Adicionado! Ver carrinho" : "+ Adicionar ao Carrinho"}
+                </a>
+              )}
+            </div>
+            <a href="/" className="block w-full bg-white/5 border border-white/10 hover:bg-white/10 py-3 rounded-xl font-black text-center text-xs text-gray-400 transition-all">
+              Ver todos os produtos
+            </a>
+          </div>
+        </div>
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-black mb-6">Avaliacoes ({avaliacoes.length})</h2>
+          {avaliacoes.length === 0 && <p className="text-gray-500 text-sm mb-6">Nenhuma avaliacao ainda. Seja o primeiro!</p>}
+          <div className="space-y-3 mb-8">
+            {avaliacoes.map(av => (
+              <div key={av.id} className="bg-white/4 border border-white/8 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-black text-sm text-gray-200">{av.nome}</p>
+                  <div className="flex">{[1,2,3,4,5].map(s=><span key={s} className={s<=av.estrelas?"text-yellow-400 text-sm":"text-gray-600 text-sm"}>&#9733;</span>)}</div>
+                </div>
+                <p className="text-sm text-gray-400">{av.comentario}</p>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white/4 border border-white/8 rounded-2xl p-5 space-y-3">
+            <h3 className="font-black text-sm text-gray-200">Deixe sua avaliacao</h3>
+            <input placeholder="Seu nome" value={avForm.nome} onChange={e=>setAvForm({...avForm,nome:e.target.value})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none"/>
+            <div className="flex gap-1">
+              {[1,2,3,4,5].map(s=>(
+                <button key={s} onClick={()=>setAvForm({...avForm,estrelas:s})} className={"text-2xl transition-all " + (s<=avForm.estrelas?"text-yellow-400":"text-gray-600 hover:text-yellow-300")}>&#9733;</button>
+              ))}
+            </div>
+            <textarea placeholder="Seu comentario..." value={avForm.comentario} onChange={e=>setAvForm({...avForm,comentario:e.target.value})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none resize-none h-24"/>
+            {avMsg && <p className="text-sm text-green-400">{avMsg}</p>}
+            <button onClick={enviarAvaliacao} disabled={enviandoAv} className="w-full bg-purple-700 hover:bg-purple-600 disabled:opacity-50 py-3 rounded-xl font-black text-sm transition-all">
+              {enviandoAv?"Enviando...":"Enviar Avaliacao"}
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
