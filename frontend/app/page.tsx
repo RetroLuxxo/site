@@ -83,7 +83,9 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const addId = params.get("add");
     const abrirCarrinho = params.get("carrinho");
+    const abrirCheckout = params.get("checkout");
     if (abrirCarrinho) { setCarrinhoAberto(true); window.history.replaceState({}, "", "/"); return; }
+    if (abrirCheckout) { setCheckoutAberto(true); window.history.replaceState({}, "", "/"); return; }
     if (!addId) return;
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       const p = data.find((p: Produto) => p.id === parseInt(addId));

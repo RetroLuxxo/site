@@ -39,7 +39,6 @@ export default function ProdutoPage() {
     const item = novo.find((i: any) => i.produto?.id === produto.id);
     setQtdCarrinho(item ? item.quantidade : 0);
     setAdicionado(true);
-    setCarrinhoAberto(true);
   };
 
   const removerDoCarrinho = (prodId: number) => {
@@ -86,7 +85,17 @@ export default function ProdutoPage() {
             <img src="/favicon.png" alt="JC Games" className="w-8 h-8 object-contain rounded-lg"/>
             <span className="font-black text-lg"><span className="text-purple-400">JC GAMES</span><span className="text-white/90"> STORE</span></span>
           </a>
-          <a href="/" className="ml-4 text-sm text-gray-400 hover:text-purple-400 transition-all">voltar</a>
+          <a href="/" className="ml-4 text-sm text-gray-400 hover:text-purple-400 transition-all">← Voltar</a>
+          <div className="ml-auto">
+            <button onClick={()=>setCarrinhoAberto(true)} className="relative flex items-center gap-2 bg-purple-700 hover:bg-purple-600 px-4 py-2 rounded-xl text-sm font-black transition-all">
+              🛒 Carrinho
+              {carrinho.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-black">
+                  {carrinho.reduce((s,i)=>s+i.quantidade,0)}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
       <main className="max-w-6xl mx-auto px-4 py-8">
@@ -136,9 +145,9 @@ export default function ProdutoPage() {
                   {produto.estoque === 0 ? "Esgotado" : "Limite atingido"}
                 </div>
               ) : (
-                <a href={`/?add=${produto.id}`} onClick={()=>setAdicionado(true)} className={"block w-full py-4 rounded-xl font-black text-center text-sm transition-all " + (adicionado?"bg-green-600":"bg-purple-700 hover:bg-purple-600")}>
-                  {adicionado ? "Adicionado! Ver carrinho" : "+ Adicionar ao Carrinho"}
-                </a>
+                <button onClick={adicionarAoCarrinho} className={"w-full py-4 rounded-xl font-black text-sm transition-all " + (adicionado?"bg-green-600 hover:bg-green-500":"bg-purple-700 hover:bg-purple-600")}>
+                  {adicionado ? "✅ Adicionado!" : "+ Adicionar ao Carrinho"}
+                </button>
               )}
             </div>
             <button onClick={()=>setCarrinhoAberto(true)} className="w-full bg-white/5 border border-white/10 hover:bg-white/10 py-3 rounded-xl font-black text-center text-xs text-gray-400 transition-all">
@@ -210,7 +219,7 @@ export default function ProdutoPage() {
                   <span className="text-gray-500 text-sm">Total</span>
                   <span className="font-black text-green-400 text-lg">R$ {totalCarrinho.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span>
                 </div>
-                <a href="/?carrinho=1" className="block w-full bg-green-600 hover:bg-green-500 py-3.5 rounded-xl font-black text-sm text-center transition-all">
+                <a href="/?checkout=1" className="block w-full bg-green-600 hover:bg-green-500 py-3.5 rounded-xl font-black text-sm text-center transition-all">
                   Finalizar Compra →
                 </a>
                 <a href="/" className="block w-full bg-white/5 border border-white/10 hover:bg-white/10 py-2.5 rounded-xl font-black text-xs text-gray-400 text-center transition-all">
