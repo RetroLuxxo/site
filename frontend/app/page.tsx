@@ -315,6 +315,7 @@ export default function Home() {
   return (
     <div className="min-h-screen text-white" style={{fontFamily:`'${lojaFonte}',system-ui,sans-serif`,background:lojaCorFundo,color:lojaCorTexto,fontSize:lojaTamanhoFonte+"px"}}>
       <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${lojaFonte.replace(/ /g,"+")}&display=swap`}/>
+      {lojaLogo && lojaLogo !== "/favicon.png" && <link rel="icon" href={lojaLogo} type="image/png"/>}
       <style>{`
         :root {
           --cor-botao: ${lojaCorBotao};
