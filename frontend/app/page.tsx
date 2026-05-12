@@ -92,14 +92,14 @@ export default function Home() {
     if (abrirCarrinho) { setCarrinhoAberto(true); window.history.replaceState({}, "", "/"); return; }
     if (abrirCheckout) { setCheckoutAberto(true); window.history.replaceState({}, "", "/"); return; }
     if (!addId) return;
-    fetch(`${API}/produtos`).then(r => r.json()).then(data => {
-      fetch(`${API}/configuracoes/loja`).then(r => r.ok?r.json():{}).then((cfg: Record<string,string>) => {
+    fetch(`${API}/configuracoes/loja`).then(r => r.ok?r.json():{}).then((cfg: Record<string,string>) => {
         if(cfg.loja_nome) setLojaNome(cfg.loja_nome);
         if(cfg.loja_descricao) setLojaDesc(cfg.loja_descricao);
         if(cfg.loja_logo) setLojaLogo(cfg.loja_logo);
         if(cfg.loja_cor_primaria) setLojaCorPrimaria(cfg.loja_cor_primaria);
         if(cfg.loja_cor_fundo) setLojaCorFundo(cfg.loja_cor_fundo);
       }).catch(()=>{});
+    fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       const p = data.find((p: Produto) => p.id === parseInt(addId));
       if (p && p.estoque > 0) {
         setCarrinho(prev => {
@@ -135,10 +135,31 @@ export default function Home() {
   }, []);
 
   useEffect(() => { const t = busca.toLowerCase(); setProdutosFiltrados(produtos.filter(p => p.nome.toLowerCase().includes(t) || p.descricao?.toLowerCase().includes(t))); }, [busca, produtos]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (usuario) {
+        carregarCarrinhoDB(usuario, token, produtos);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [usuario, token, produtos]);
   useEffect(() => { if (!usuario) localStorage.setItem("carrinho", JSON.stringify(carrinho)); }, [carrinho, usuario]);
 
   const carregarEnderecos = async (tk: string) => { const r = await fetch(`${API}/enderecos`, { headers: authHeaders(tk) }); if (r.ok) setEnderecosSalvos(await r.json()); };
-  const adicionarCarrinhoDB = async (p: Produto) => { if (!usuario || carrinho.find(i => i.produto.id === p.id)) return; await fetch(`${API}/carrinho`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ product_id: p.id, quantidade: 1, session_id: sessionId(usuario) }) }); };
+  const adicionarCarrinhoDB = async (p: Produto) => {
+    if (!usuario) return;
+    const r = await fetch(`${API}/carrinho?session_id=${sessionId(usuario)}`, { headers: authHeaders() });
+    if (!r.ok) return;
+    const itens: CartItemDB[] = await r.json();
+    const existing = itens.find(i => i.product_id === p.id);
+    if (existing) {
+      await fetch(`${API}/carrinho/${existing.id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify({ incremento: 1 }) });
+    } else {
+      await fetch(`${API}/carrinho`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ product_id: p.id, quantidade: 1, session_id: sessionId(usuario) }) });
+    }
+  };
   const removerCarrinhoDB = async (id: number) => { if (!usuario) return; const r = await fetch(`${API}/carrinho?session_id=${sessionId(usuario)}`, { headers: authHeaders() }); if (!r.ok) return; const itens: CartItemDB[] = await r.json(); const it = itens.find(i => i.product_id === id); if (it) await fetch(`${API}/carrinho/${it.id}`, { method: "DELETE", headers: authHeaders() }); };
   const preencherFormComUsuario = (u: Usuario) => setForm(f => ({ ...f, nome: u.nome, email: u.email, telefone: u.telefone, cpf: u.cpf }));
 
@@ -183,9 +204,33 @@ export default function Home() {
   const salvarPerfil = async () => { const r = await fetch(`${API}/auth/me`,{method:"PUT",headers:authHeaders(),body:JSON.stringify(perfilForm)}); if (r.ok) { const u=await r.json(); setUsuario(u); preencherFormComUsuario(u); setPerfilMsg("✅ Dados salvos!"); setTimeout(()=>setPerfilMsg(""),3000); } };
   const alterarSenha = async () => { if (senhaForm.nova_senha!==senhaForm.confirmar) { setPerfilMsg("❌ Senhas não conferem!"); return; } const r=await fetch(`${API}/auth/senha`,{method:"PUT",headers:authHeaders(),body:JSON.stringify({senha_atual:senhaForm.senha_atual,nova_senha:senhaForm.nova_senha})}); if (r.ok) { setPerfilMsg("✅ Senha alterada!"); setSenhaForm({senha_atual:"",nova_senha:"",confirmar:""}); } else { const d=await r.json(); setPerfilMsg(`❌ ${d.detail}`); } setTimeout(()=>setPerfilMsg(""),3000); };
   const cancelarPedido = async (id:number) => { if (!confirm("Cancelar?")) return; const r=await fetch(`${API}/pedidos/${id}/cancelar`,{method:"PUT",headers:authHeaders()}); if (r.ok) { setPedidos(prev=>prev.map(p=>p.id===id?{...p,status:"cancelado"}:p)); setPedidoSelecionado(null); } };
-  const adicionarAoCarrinho = async (p:Produto) => { if (p.estoque===0) return; setCarrinho(prev=>{const ex=prev.find(i=>i.produto.id===p.id); if(ex&&ex.quantidade>=p.estoque) return prev; return ex?prev.map(i=>i.produto.id===p.id?{...i,quantidade:i.quantidade+1}:i):[...prev,{produto:p,quantidade:1}];}); await adicionarCarrinhoDB(p); };
+  const adicionarAoCarrinho = async (p:Produto) => {
+    if (p.estoque===0) return;
+    let novaQtd = 1;
+    setCarrinho(prev=>{
+      const ex=prev.find(i=>i.produto.id===p.id);
+      if(ex&&ex.quantidade>=p.estoque) return prev;
+      novaQtd = ex ? ex.quantidade+1 : 1;
+      return ex?prev.map(i=>i.produto.id===p.id?{...i,quantidade:novaQtd}:i):[...prev,{produto:p,quantidade:1}];
+    });
+    await adicionarCarrinhoDB(p);
+  };
   const removerDoCarrinho = async (id:number) => { setCarrinho(prev=>prev.filter(i=>i.produto.id!==id)); await removerCarrinhoDB(id); };
-  const alterarQuantidade = (id:number,d:number) => setCarrinho(prev=>prev.map(i=>{if(i.produto.id!==id)return i;const q=i.quantidade+d;return(q<=0||q>i.produto.estoque)?i:{...i,quantidade:q};}));
+  const alterarQuantidade = async (id:number,d:number) => {
+    const itemAtual = carrinho.find(i=>i.produto.id===id);
+    if(!itemAtual) return;
+    const novaQtd = itemAtual.quantidade + d;
+    if(novaQtd<=0||novaQtd>itemAtual.produto.estoque) return;
+    setCarrinho(prev=>prev.map(i=>i.produto.id===id?{...i,quantidade:novaQtd}:i));
+    if(usuario){
+      const r = await fetch(`${API}/carrinho?session_id=${sessionId(usuario)}`,{headers:authHeaders()});
+      if(r.ok){
+        const itens:CartItemDB[] = await r.json();
+        const item = itens.find(i=>i.product_id===id);
+        if(item) await fetch(`${API}/carrinho/${item.id}`,{method:"PUT",headers:authHeaders(),body:JSON.stringify({quantidade:novaQtd})});
+      }
+    }
+  };
 
   const buscarCep = async () => {
     const c=cep.replace(/\D/g,""); if(c.length!==8)return;

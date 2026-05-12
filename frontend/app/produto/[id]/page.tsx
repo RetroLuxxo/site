@@ -21,24 +21,89 @@ export default function ProdutoPage() {
   const [carrinho, setCarrinho] = useState<{produto:Produto;quantidade:number}[]>([]);
 
   useEffect(() => {
-    try {
-      const c = JSON.parse(localStorage.getItem("carrinho") || "[]");
-      setCarrinho(c);
-      const item = c.find((i: any) => i.produto?.id === parseInt(id as string));
-      setQtdCarrinho(item ? item.quantidade : 0);
-    } catch {}
+    const tk = localStorage.getItem("token");
+    const syncCarrinho = async () => {
+      try {
+        if (tk) {
+          const me = await fetch(`${API}/auth/me`, {headers:{Authorization:`Bearer ${tk}`}});
+          if (me.ok) {
+            const u = await me.json();
+            const r = await fetch(`${API}/carrinho?session_id=user_${u.id}`, {headers:{Authorization:`Bearer ${tk}`}});
+            if (r.ok) {
+              const itensDB = await r.json();
+              const prods = await fetch(`${API}/produtos`).then(r=>r.json());
+              const c = itensDB.map((i:any) => {
+                const p = prods.find((p:any) => p.id === i.product_id);
+                return p ? {produto:p, quantidade:i.quantidade} : null;
+              }).filter(Boolean);
+              setCarrinho(c);
+              const item = c.find((i:any) => i.produto?.id === parseInt(id as string));
+              setQtdCarrinho(item ? item.quantidade : 0);
+              return;
+            }
+          }
+        }
+        const c = JSON.parse(localStorage.getItem("carrinho") || "[]");
+        setCarrinho(c);
+        const item = c.find((i: any) => i.produto?.id === parseInt(id as string));
+        setQtdCarrinho(item ? item.quantidade : 0);
+      } catch {}
+    };
+    syncCarrinho();
+    window.addEventListener("focus", syncCarrinho);
+    return () => window.removeEventListener("focus", syncCarrinho);
   }, [id]);
 
-  const adicionarAoCarrinho = () => {
+  const adicionarAoCarrinho = async () => {
     if (!produto) return;
-    const c = JSON.parse(localStorage.getItem("carrinho") || "[]");
-    const ex = c.find((i: any) => i.produto?.id === produto.id);
-    const novo = ex ? c.map((i: any) => i.produto?.id===produto.id?{...i,quantidade:i.quantidade+1}:i) : [...c,{produto,quantidade:1}];
-    localStorage.setItem("carrinho", JSON.stringify(novo));
-    setCarrinho(novo);
-    const item = novo.find((i: any) => i.produto?.id === produto.id);
-    setQtdCarrinho(item ? item.quantidade : 0);
+    const tk = localStorage.getItem("token");
+    const novaQtd = qtdCarrinho + 1;
+    if (tk) {
+      // Logado: salva no banco
+      const me = await fetch(`${API}/auth/me`, {headers:{Authorization:`Bearer ${tk}`}});
+      if (me.ok) {
+        const u = await me.json();
+        const r = await fetch(`${API}/carrinho?session_id=user_${u.id}`, {headers:{Authorization:`Bearer ${tk}`}});
+        if (r.ok) {
+          const itens = await r.json();
+          const ex = itens.find((i:any) => i.product_id === produto.id);
+          if (ex) {
+            await fetch(`${API}/carrinho/${ex.id}`, {method:"PUT", headers:{Authorization:`Bearer ${tk}`,"Content-Type":"application/json"}, body:JSON.stringify({quantidade:novaQtd})});
+          } else {
+            await fetch(`${API}/carrinho`, {method:"POST", headers:{Authorization:`Bearer ${tk}`,"Content-Type":"application/json"}, body:JSON.stringify({product_id:produto.id, quantidade:1, session_id:`user_${u.id}`})});
+          }
+        }
+      }
+    } else {
+      // Não logado: salva no localStorage
+      const c = JSON.parse(localStorage.getItem("carrinho") || "[]");
+      const ex = c.find((i: any) => i.produto?.id === produto.id);
+      const novo = ex ? c.map((i: any) => i.produto?.id===produto.id?{...i,quantidade:i.quantidade+1}:i) : [...c,{produto,quantidade:1}];
+      localStorage.setItem("carrinho", JSON.stringify(novo));
+      setCarrinho(novo);
+    }
+    setQtdCarrinho(novaQtd);
     setAdicionado(true);
+    // Recarrega carrinho do banco para atualizar estado
+    setTimeout(async () => {
+      const tk2 = localStorage.getItem("token");
+      if (tk2) {
+        const me2 = await fetch(`${API}/auth/me`, {headers:{Authorization:`Bearer ${tk2}`}});
+        if (me2.ok) {
+          const u2 = await me2.json();
+          const r2 = await fetch(`${API}/carrinho?session_id=user_${u2.id}`, {headers:{Authorization:`Bearer ${tk2}`}});
+          if (r2.ok) {
+            const itensDB2 = await r2.json();
+            const prods2 = await fetch(`${API}/produtos`).then(r=>r.json());
+            const c2 = itensDB2.map((i:any) => {
+              const p2 = prods2.find((p:any) => p.id === i.product_id);
+              return p2 ? {produto:p2, quantidade:i.quantidade} : null;
+            }).filter(Boolean);
+            setCarrinho(c2);
+          }
+        }
+      }
+    }, 500);
   };
 
   const removerDoCarrinho = (prodId: number) => {

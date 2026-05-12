@@ -191,6 +191,21 @@ def adicionar_ao_carrinho(item: schemas.CartItemCreate, db: Session = Depends(ge
     db.refresh(db_item)
     return db_item
 
+@app.put("/carrinho/{item_id}")
+def atualizar_item_carrinho(item_id: int, dados: dict, db: Session = Depends(get_db)):
+    item = db.query(models.CartItem).filter(models.CartItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+    if "incremento" in dados:
+        item.quantidade = item.quantidade + dados["incremento"]
+    else:
+        item.quantidade = dados.get("quantidade", item.quantidade)
+    if item.quantidade < 1:
+        item.quantidade = 1
+    db.commit()
+    db.refresh(item)
+    return item
+
 @app.delete("/carrinho/{item_id}")
 def remover_do_carrinho(item_id: int, db: Session = Depends(get_db)):
     db_item = db.query(models.CartItem).filter(models.CartItem.id == item_id).first()
