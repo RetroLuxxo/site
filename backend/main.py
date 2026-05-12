@@ -438,9 +438,25 @@ def admin_deletar_produto(produto_id: int, db: Session = Depends(get_db), admin 
     produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
+    db.query(models.CartItem).filter(models.CartItem.product_id == produto_id).delete()
+    db.query(models.Avaliacao).filter(models.Avaliacao.produto_id == produto_id).delete()
     db.delete(produto)
     db.commit()
     return {"message": "Produto removido"}
+
+@app.delete("/admin/produtos")
+def admin_deletar_produtos_lote(dados: dict, db: Session = Depends(get_db), admin = Depends(get_admin)):
+    ids = dados.get("ids", [])
+    if not ids:
+        raise HTTPException(status_code=400, detail="Nenhum produto selecionado")
+    for pid in ids:
+        db.query(models.CartItem).filter(models.CartItem.product_id == pid).delete()
+        db.query(models.Avaliacao).filter(models.Avaliacao.produto_id == pid).delete()
+        produto = db.query(models.Produto).filter(models.Produto.id == pid).first()
+        if produto:
+            db.delete(produto)
+    db.commit()
+    return {"message": f"{len(ids)} produtos removidos"}
 
 @app.post("/pagamentos/pix")
 def criar_pix(pedido_id: int, db: Session = Depends(get_db)):

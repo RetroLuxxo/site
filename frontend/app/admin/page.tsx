@@ -22,6 +22,7 @@ export default function Admin() {
   const [configs, setConfigs] = useState<Record<string,{valor:string;descricao:string}>>({});
   const [salvandoConfig, setSalvandoConfig] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [selecionados, setSelecionados] = useState<number[]>([]);
   const [dadosUsuario, setDadosUsuario] = useState<UsuarioAdmin|null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [enviandoStatus, setEnviandoStatus] = useState(false);
@@ -487,6 +488,16 @@ export default function Admin() {
                     e.target.value = "";
                   }}/>
                 </label>
+                {selecionados.length > 0 && (
+                  <button onClick={async () => {
+                    if(!confirm(`Remover ${selecionados.length} produtos?`)) return;
+                    const r = await fetch(`${API}/admin/produtos`, {method:"DELETE", headers:H(token), body:JSON.stringify({ids:selecionados})});
+                    if(r.ok){setProdutos(prev=>prev.filter(p=>!selecionados.includes(p.id)));setSelecionados([]);showMsg(`✅ ${selecionados.length} removidos!`);}
+                    else showMsg("❌ Erro ao remover");
+                  }} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl font-black text-sm transition-all btn-press">
+                    🗑️ Remover ({selecionados.length})
+                  </button>
+                )}
                 <button onClick={() => setShowNovoProduto(!showNovoProduto)}
                   className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl font-black text-sm transition-all btn-press">
                   + Novo
@@ -545,6 +556,7 @@ export default function Admin() {
                     </div>
                   ) : (
                     <div className="flex gap-3 p-3 items-center">
+                      <input type="checkbox" checked={selecionados.includes(p.id)} onChange={e=>setSelecionados(prev=>e.target.checked?[...prev,p.id]:prev.filter(i=>i!==p.id))} className="w-4 h-4 accent-purple-500 flex-shrink-0"/>
                       <img src={p.imagem_url} alt={p.nome} className="w-16 h-16 object-contain rounded-xl bg-black/40 flex-shrink-0 p-1"/>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm text-gray-200 line-clamp-2 leading-tight">{p.nome}</p>
