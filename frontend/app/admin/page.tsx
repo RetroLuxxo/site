@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://192.168.18.23:8000";
+const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? window.location.protocol + "//" + window.location.hostname + ":8000" : "http://localhost:8000");
 
 type Pedido = { id: number; nome: string; email: string; telefone: string; status: string; total: number; frete_nome: string; cidade: string; estado: string; itens: any[]; codigo_rastreio?: string; };
 type Produto = { id: number; nome: string; preco: number; estoque: number; imagem_url: string; descricao: string; };

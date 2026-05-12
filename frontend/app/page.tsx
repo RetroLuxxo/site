@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://192.168.18.23:8000";
+const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? window.location.protocol + "//" + window.location.hostname + ":8000" : "http://localhost:8000");
 
 type Produto = { id: number; nome: string; preco: number; imagem_url: string; estoque: number; descricao: string; };
 type ItemCarrinho = { produto: Produto; quantidade: number; };
