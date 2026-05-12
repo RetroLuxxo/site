@@ -79,6 +79,20 @@ export default function Home() {
   }, [token, produtos]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const addId = params.get("add");
+      if (addId) {
+        fetch(`${API}/produtos`).then(r => r.json()).then(data => {
+          const p = data.find((p: Produto) => p.id === parseInt(addId));
+          if (p && p.estoque > 0) { adicionarAoCarrinho(p); }
+          window.history.replaceState({}, "", "/");
+        });
+      }
+    }
+  }, [produtos]);
+
+  useEffect(() => {
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
