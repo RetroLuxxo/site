@@ -272,7 +272,27 @@ export default function ProdutoPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-gray-200 line-clamp-2">{item.produto.nome}</p>
                     <p className="text-green-400 font-black text-sm mt-1">R$ {(item.produto.preco*item.quantidade).toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
-                    <p className="text-gray-500 text-xs">{item.quantidade}x</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <button onClick={()=>{
+                        const tk=localStorage.getItem("token");
+                        const novaQtd=item.quantidade-1;
+                        if(novaQtd<=0){removerDoCarrinho(item.produto.id);return;}
+                        const novo=carrinho.map((i:any)=>i.produto.id===item.produto.id?{...i,quantidade:novaQtd}:i);
+                        setCarrinho(novo);setQtdCarrinho(novo.find((i:any)=>i.produto.id===produto?.id)?.quantidade||0);
+                        localStorage.setItem("carrinho",JSON.stringify(novo));
+                        if(tk){fetch(`${API}/auth/me`,{headers:{Authorization:`Bearer ${tk}`}}).then(r=>r.ok?r.json():null).then(u=>{if(!u)return;fetch(`${API}/carrinho?session_id=user_${u.id}`,{headers:{Authorization:`Bearer ${tk}`}}).then(r=>r.ok?r.json():[]).then(itens=>{const ex=itens.find((i:any)=>i.product_id===item.produto.id);if(ex)fetch(`${API}/carrinho/${ex.id}`,{method:"PUT",headers:{Authorization:`Bearer ${tk}`,"Content-Type":"application/json"},body:JSON.stringify({quantidade:novaQtd})});});});}
+                      }} className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-black flex items-center justify-center">−</button>
+                      <span className="text-xs font-black">{item.quantidade}</span>
+                      <button onClick={()=>{
+                        const tk=localStorage.getItem("token");
+                        const novaQtd=item.quantidade+1;
+                        if(novaQtd>item.produto.estoque)return;
+                        const novo=carrinho.map((i:any)=>i.produto.id===item.produto.id?{...i,quantidade:novaQtd}:i);
+                        setCarrinho(novo);setQtdCarrinho(novo.find((i:any)=>i.produto.id===produto?.id)?.quantidade||0);
+                        localStorage.setItem("carrinho",JSON.stringify(novo));
+                        if(tk){fetch(`${API}/auth/me`,{headers:{Authorization:`Bearer ${tk}`}}).then(r=>r.ok?r.json():null).then(u=>{if(!u)return;fetch(`${API}/carrinho?session_id=user_${u.id}`,{headers:{Authorization:`Bearer ${tk}`}}).then(r=>r.ok?r.json():[]).then(itens=>{const ex=itens.find((i:any)=>i.product_id===item.produto.id);if(ex)fetch(`${API}/carrinho/${ex.id}`,{method:"PUT",headers:{Authorization:`Bearer ${tk}`,"Content-Type":"application/json"},body:JSON.stringify({quantidade:novaQtd})});});});}
+                      }} disabled={item.quantidade>=item.produto.estoque} className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 text-xs font-black flex items-center justify-center">+</button>
+                    </div>
                   </div>
                   <button onClick={()=>removerDoCarrinho(item.produto.id)} className="text-gray-600 hover:text-red-400 transition-all self-start p-1">✕</button>
                 </div>
