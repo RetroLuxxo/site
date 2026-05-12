@@ -461,6 +461,9 @@ export default function Admin() {
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-xl font-black">Produtos ({produtos.length})</h2>
               <div className="flex gap-2">
+                <button onClick={()=>setSelecionados(selecionados.length===produtos.length?[]:produtos.map(p=>p.id))} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl font-black text-xs transition-all btn-press">
+                  {selecionados.length===produtos.length?"☑️ Desmarcar":"☐ Todos"}
+                </button>
                 <label className="cursor-pointer bg-green-600 hover:bg-green-500 px-4 py-2 rounded-xl font-black text-sm transition-all btn-press flex items-center gap-2">
                   {importando ? "⏳ Importando..." : "📥 CSV"}
                   <input type="file" accept=".csv" className="hidden" onChange={async e => {
