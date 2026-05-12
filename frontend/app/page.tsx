@@ -31,6 +31,12 @@ export default function Home() {
   const [lojaLogo, setLojaLogo] = useState("/favicon.png");
   const [lojaCorPrimaria, setLojaCorPrimaria] = useState("#8B2FC9");
   const [lojaCorFundo, setLojaCorFundo] = useState("#0a0010");
+  const [lojaCorBotao, setLojaCorBotao] = useState("#8B2FC9");
+  const [lojaCorTexto, setLojaCorTexto] = useState("#ffffff");
+  const [lojaTransparencia, setLojaTransparencia] = useState("0.08");
+  const [lojaTamanhoFonte, setLojaTamanhoFonte] = useState("14");
+  const [lojaTamanhoFonteBotao, setLojaTamanhoFonteBotao] = useState("12");
+  const [lojaCorTextoBotao, setLojaCorTextoBotao] = useState("#ffffff");
   const [sincronizando, setSincronizando] = useState(false);
   const [menuMobile, setMenuMobile] = useState(false);
 
@@ -98,6 +104,12 @@ export default function Home() {
         if(cfg.loja_logo) setLojaLogo(cfg.loja_logo);
         if(cfg.loja_cor_primaria) setLojaCorPrimaria(cfg.loja_cor_primaria);
         if(cfg.loja_cor_fundo) setLojaCorFundo(cfg.loja_cor_fundo);
+        if(cfg.loja_cor_botao) setLojaCorBotao(cfg.loja_cor_botao);
+        if(cfg.loja_cor_texto) setLojaCorTexto(cfg.loja_cor_texto);
+        if(cfg.loja_transparencia_cards) setLojaTransparencia(cfg.loja_transparencia_cards);
+        if(cfg.loja_tamanho_fonte) setLojaTamanhoFonte(cfg.loja_tamanho_fonte);
+        if(cfg.loja_tamanho_fonte_botao) setLojaTamanhoFonteBotao(cfg.loja_tamanho_fonte_botao);
+        if(cfg.loja_cor_texto_botao) setLojaCorTextoBotao(cfg.loja_cor_texto_botao);
       }).catch(()=>{});
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       const p = data.find((p: Produto) => p.id === parseInt(addId));
@@ -122,6 +134,12 @@ export default function Home() {
         if(cfg.loja_logo) setLojaLogo(cfg.loja_logo);
         if(cfg.loja_cor_primaria) setLojaCorPrimaria(cfg.loja_cor_primaria);
         if(cfg.loja_cor_fundo) setLojaCorFundo(cfg.loja_cor_fundo);
+        if(cfg.loja_cor_botao) setLojaCorBotao(cfg.loja_cor_botao);
+        if(cfg.loja_cor_texto) setLojaCorTexto(cfg.loja_cor_texto);
+        if(cfg.loja_transparencia_cards) setLojaTransparencia(cfg.loja_transparencia_cards);
+        if(cfg.loja_tamanho_fonte) setLojaTamanhoFonte(cfg.loja_tamanho_fonte);
+        if(cfg.loja_tamanho_fonte_botao) setLojaTamanhoFonteBotao(cfg.loja_tamanho_fonte_botao);
+        if(cfg.loja_cor_texto_botao) setLojaCorTextoBotao(cfg.loja_cor_texto_botao);
       }).catch(()=>{});
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
@@ -280,7 +298,19 @@ export default function Home() {
   const card="bg-white/4 border border-white/8 rounded-2xl";
 
   return (
-    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:lojaCorFundo}}>
+    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:lojaCorFundo,color:lojaCorTexto,fontSize:lojaTamanhoFonte+"px"}}>
+      <style>{`
+        :root {
+          --cor-botao: ${lojaCorBotao};
+          --cor-botao-hover: ${lojaCorBotao}cc;
+          --transparencia-cards: ${lojaTransparencia};
+          --fonte-botao: ${lojaTamanhoFonteBotao}px;
+          --cor-texto-botao: ${lojaCorTextoBotao};
+        }
+        .btn-dinamico { background-color: var(--cor-botao) !important; font-size: var(--fonte-botao) !important; color: var(--cor-texto-botao) !important; }
+        .btn-dinamico:hover { background-color: var(--cor-botao-hover) !important; }
+        .glass-card { background: rgba(139,47,201,var(--transparencia-cards)) !important; }
+      `}</style>
       <style>{`
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
@@ -334,7 +364,7 @@ export default function Home() {
             ):(
               <button onClick={()=>setLoginAberto(true)} className="hidden sm:block bg-white/6 border border-white/10 hover:border-purple-500/40 rounded-xl px-4 py-2 text-sm text-purple-400 transition-all font-medium btn-press">Entrar</button>
             )}
-            <button onClick={()=>setCarrinhoAberto(true)} className="relative bg-purple-700 hover:bg-purple-600 rounded-xl px-3 sm:px-4 py-2 text-sm font-bold transition-all btn-press flex items-center gap-2">
+            <button onClick={()=>setCarrinhoAberto(true)} className="relative bg-purple-700 hover:bg-purple-600 rounded-xl px-3 sm:px-4 py-2 text-sm font-bold transition-all btn-press btn-dinamico flex items-center gap-2">
               <span>🛒</span><span className="hidden sm:inline">Carrinho</span>
               {totalItens>0&&<span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-black">{totalItens}</span>}
             </button>
@@ -388,7 +418,7 @@ export default function Home() {
                     <p className="text-lg sm:text-xl font-black text-green-400 crt-price">R$ {p.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
                     <p className="text-gray-600 text-[9px] sm:text-[10px]">12x R$ {(p.preco/12).toLocaleString("pt-BR",{maximumFractionDigits:2})}</p>
                   </div>
-                  <button onClick={()=>adicionarAoCarrinho(p)} disabled={p.estoque===0} className={`w-full py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wide transition-all btn-press ${p.estoque===0?"bg-white/5 text-gray-600 cursor-not-allowed":"bg-purple-700 hover:bg-purple-600 text-white"}`}>
+                  <button onClick={()=>adicionarAoCarrinho(p)} disabled={p.estoque===0} className={`w-full py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wide transition-all btn-press ${p.estoque===0?"bg-white/5 text-gray-600 cursor-not-allowed":"bg-purple-700 hover:bg-purple-600 text-white btn-dinamico"}`}>
                     {p.estoque===0?"Esgotado":"+ Carrinho"}
                   </button>
                 </div>

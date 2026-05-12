@@ -364,6 +364,12 @@ export default function Admin() {
             {titulo:"🎨 Visual", chaves:[
               {k:"loja_cor_primaria",label:"Cor Primária",tipo:"color"},
               {k:"loja_cor_fundo",label:"Cor de Fundo",tipo:"color"},
+              {k:"loja_cor_botao",label:"Cor dos Botões",tipo:"color"},
+              {k:"loja_cor_texto_botao",label:"Cor do Texto dos Botões",tipo:"color"},
+              {k:"loja_cor_texto",label:"Cor do Texto",tipo:"color"},
+              {k:"loja_transparencia_cards",label:"Transparência dos Cards (0.0 a 1.0)",tipo:"text"},
+              {k:"loja_tamanho_fonte",label:"Tamanho da Fonte (px)",tipo:"text"},
+              {k:"loja_tamanho_fonte_botao",label:"Tamanho Fonte Botões (px)",tipo:"text"},
             ]},
           ].map(secao=>(
             <div key={secao.titulo} className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-3">

@@ -574,7 +574,7 @@ def atualizar_fotos(produto_id: int, dados: dict, token: str = Depends(get_usuar
 # ============================================================
 @app.get("/configuracoes/loja")
 def configs_publicas(db: Session = Depends(get_db)):
-    chaves = ["loja_nome", "loja_descricao", "loja_logo", "loja_cor_primaria", "loja_cor_fundo"]
+    chaves = ["loja_nome", "loja_descricao", "loja_logo", "loja_cor_primaria", "loja_cor_fundo", "loja_cor_botao", "loja_cor_texto", "loja_transparencia_cards", "loja_tamanho_fonte", "loja_tamanho_fonte_botao", "loja_cor_texto_botao"]
     configs = db.query(models.Configuracao).filter(models.Configuracao.chave.in_(chaves)).all()
     return {c.chave: c.valor for c in configs}
 @app.get("/admin/configuracoes")
