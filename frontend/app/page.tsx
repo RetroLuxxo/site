@@ -40,6 +40,8 @@ export default function Home() {
   const [lojaTamanhoLogo, setLojaTamanhoLogo] = useState("32");
   const [lojaTamanhoNomeLoja, setLojaTamanhoNomeLoja] = useState("18");
   const [lojaCorNomeLoja, setLojaCorNomeLoja] = useState("#8B2FC9");
+  const [lojaCorNomeLoja2, setLojaCorNomeLoja2] = useState("#ffffff");
+  const [lojaFonte, setLojaFonte] = useState("Orbitron");
   const [sincronizando, setSincronizando] = useState(false);
   const [menuMobile, setMenuMobile] = useState(false);
 
@@ -116,6 +118,8 @@ export default function Home() {
         if(cfg.loja_tamanho_logo) setLojaTamanhoLogo(cfg.loja_tamanho_logo);
         if(cfg.loja_tamanho_nome_loja) setLojaTamanhoNomeLoja(cfg.loja_tamanho_nome_loja);
         if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
+        if(cfg.loja_cor_nome_loja2) setLojaCorNomeLoja2(cfg.loja_cor_nome_loja2);
+        if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
       }).catch(()=>{});
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       const p = data.find((p: Produto) => p.id === parseInt(addId));
@@ -149,6 +153,8 @@ export default function Home() {
         if(cfg.loja_tamanho_logo) setLojaTamanhoLogo(cfg.loja_tamanho_logo);
         if(cfg.loja_tamanho_nome_loja) setLojaTamanhoNomeLoja(cfg.loja_tamanho_nome_loja);
         if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
+        if(cfg.loja_cor_nome_loja2) setLojaCorNomeLoja2(cfg.loja_cor_nome_loja2);
+        if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
       }).catch(()=>{});
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
@@ -307,7 +313,8 @@ export default function Home() {
   const card="bg-white/4 border border-white/8 rounded-2xl";
 
   return (
-    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:lojaCorFundo,color:lojaCorTexto,fontSize:lojaTamanhoFonte+"px"}}>
+    <div className="min-h-screen text-white" style={{fontFamily:`'${lojaFonte}',system-ui,sans-serif`,background:lojaCorFundo,color:lojaCorTexto,fontSize:lojaTamanhoFonte+"px"}}>
+      <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${lojaFonte.replace(/ /g,"+")}&display=swap`}/>
       <style>{`
         :root {
           --cor-botao: ${lojaCorBotao};
@@ -354,7 +361,10 @@ export default function Home() {
         <div className="max-w-[1600px] mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
             <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
-            <span className="font-black tracking-tight hidden sm:block" style={{fontSize:lojaTamanhoNomeLoja+"px",color:lojaCorNomeLoja}}>{lojaNome}</span>
+            <span className="font-black tracking-tight hidden sm:block" style={{fontSize:lojaTamanhoNomeLoja+"px"}}>
+              <span style={{color:lojaCorNomeLoja}}>{lojaNome.split(" ").slice(0,-1).join(" ")||lojaNome}</span>
+              {lojaNome.split(" ").length>1&&<span style={{color:lojaCorNomeLoja2}}> {lojaNome.split(" ").slice(-1)[0]}</span>}
+            </span>
           </a>
           <div className="flex-1 max-w-md hidden md:block">
             <input placeholder="🔍 Buscar produtos..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-purple-500/50 focus:bg-white/10 outline-none transition-all"/>
