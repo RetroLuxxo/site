@@ -358,6 +358,9 @@ export default function Admin() {
             ]},
             {titulo:"🏪 Loja", chaves:[
               {k:"loja_logo",label:"Logo da Loja",tipo:"logo"},
+              {k:"loja_tamanho_logo",label:"Tamanho da Logo (px)",tipo:"text"},
+              {k:"loja_tamanho_nome_loja",label:"Tamanho do Nome da Loja (px)",tipo:"text"},
+              {k:"loja_cor_nome_loja",label:"Cor do Nome da Loja",tipo:"color"},
               {k:"loja_nome",label:"Nome da Loja",tipo:"text"},
               {k:"loja_descricao",label:"Descrição",tipo:"text"},
             ]},

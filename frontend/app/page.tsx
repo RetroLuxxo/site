@@ -37,6 +37,9 @@ export default function Home() {
   const [lojaTamanhoFonte, setLojaTamanhoFonte] = useState("14");
   const [lojaTamanhoFonteBotao, setLojaTamanhoFonteBotao] = useState("12");
   const [lojaCorTextoBotao, setLojaCorTextoBotao] = useState("#ffffff");
+  const [lojaTamanhoLogo, setLojaTamanhoLogo] = useState("32");
+  const [lojaTamanhoNomeLoja, setLojaTamanhoNomeLoja] = useState("18");
+  const [lojaCorNomeLoja, setLojaCorNomeLoja] = useState("#8B2FC9");
   const [sincronizando, setSincronizando] = useState(false);
   const [menuMobile, setMenuMobile] = useState(false);
 
@@ -110,6 +113,9 @@ export default function Home() {
         if(cfg.loja_tamanho_fonte) setLojaTamanhoFonte(cfg.loja_tamanho_fonte);
         if(cfg.loja_tamanho_fonte_botao) setLojaTamanhoFonteBotao(cfg.loja_tamanho_fonte_botao);
         if(cfg.loja_cor_texto_botao) setLojaCorTextoBotao(cfg.loja_cor_texto_botao);
+        if(cfg.loja_tamanho_logo) setLojaTamanhoLogo(cfg.loja_tamanho_logo);
+        if(cfg.loja_tamanho_nome_loja) setLojaTamanhoNomeLoja(cfg.loja_tamanho_nome_loja);
+        if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
       }).catch(()=>{});
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       const p = data.find((p: Produto) => p.id === parseInt(addId));
@@ -140,6 +146,9 @@ export default function Home() {
         if(cfg.loja_tamanho_fonte) setLojaTamanhoFonte(cfg.loja_tamanho_fonte);
         if(cfg.loja_tamanho_fonte_botao) setLojaTamanhoFonteBotao(cfg.loja_tamanho_fonte_botao);
         if(cfg.loja_cor_texto_botao) setLojaCorTextoBotao(cfg.loja_cor_texto_botao);
+        if(cfg.loja_tamanho_logo) setLojaTamanhoLogo(cfg.loja_tamanho_logo);
+        if(cfg.loja_tamanho_nome_loja) setLojaTamanhoNomeLoja(cfg.loja_tamanho_nome_loja);
+        if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
       }).catch(()=>{});
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
@@ -344,8 +353,8 @@ export default function Home() {
       <header className="glass-header sticky top-0 z-50">
         <div className="max-w-[1600px] mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
-            <img src={lojaLogo} alt={lojaNome} className="w-8 h-8 object-contain rounded-lg"/>
-            <span className="font-black text-base sm:text-lg tracking-tight hidden sm:block"><span className="text-purple-400">{lojaNome.split(" ").slice(0,-1).join(" ")||"JC GAMES"}</span><span className="text-white/90"> {lojaNome.split(" ").slice(-1)[0]||"STORE"}</span></span>
+            <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
+            <span className="font-black tracking-tight hidden sm:block" style={{fontSize:lojaTamanhoNomeLoja+"px",color:lojaCorNomeLoja}}>{lojaNome}</span>
           </a>
           <div className="flex-1 max-w-md hidden md:block">
             <input placeholder="🔍 Buscar produtos..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-purple-500/50 focus:bg-white/10 outline-none transition-all"/>
