@@ -28,6 +28,20 @@ PAGBANK_TOKEN = os.getenv("PAGBANK_TOKEN", "")
 PAGBANK_ENV = os.getenv("PAGBANK_ENV", "sandbox")
 PAGBANK_URL = "https://sandbox.api.pagseguro.com" if PAGBANK_ENV == "sandbox" else "https://api.pagseguro.com"
 PAGBANK_HEADERS = {"Authorization": f"Bearer {PAGBANK_TOKEN}", "Content-Type": "application/json"}
+
+def get_config(db, chave: str, fallback: str = "") -> str:
+    try:
+        c = db.query(models.Configuracao).filter(models.Configuracao.chave == chave).first()
+        return c.valor if c and c.valor else fallback
+    except:
+        return fallback
+
+def get_pagbank_headers(db):
+    token = get_config(db, "pagbank_token", PAGBANK_TOKEN)
+    env = get_config(db, "pagbank_env", PAGBANK_ENV)
+    url = "https://sandbox.api.pagseguro.com" if env == "sandbox" else "https://api.pagseguro.com"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    return url, headers
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -443,7 +457,8 @@ def criar_pix(pedido_id: int, db: Session = Depends(get_db)):
         "notification_urls": [f"{os.getenv('API_URL', 'http://192.168.18.10:8000')}/pagamentos/webhook"]
     }
 
-    r = http_requests.post(f"{PAGBANK_URL}/orders", json=payload, headers=PAGBANK_HEADERS)
+    pag_url, pag_headers = get_pagbank_headers(db)
+    r = http_requests.post(f"{pag_url}/orders", json=payload, headers=pag_headers)
     data = r.json()
 
     if r.status_code not in [200, 201]:
@@ -509,7 +524,8 @@ def pagar_cartao(dados: dict, db: Session = Depends(get_db)):
         }],
         "notification_urls": [f"{os.getenv('API_URL', 'http://192.168.18.10:8000')}/pagamentos/webhook"]
     }
-    r = http_req.post(f"{PAGBANK_URL}/orders", json=payload, headers=PAGBANK_HEADERS)
+    pag_url2, pag_headers2 = get_pagbank_headers(db)
+    r = http_req.post(f"{pag_url2}/orders", json=payload, headers=pag_headers2)
     data = r.json()
     if r.status_code not in [200, 201]:
         raise HTTPException(status_code=400, detail=str(data.get("error_messages", data)))
@@ -537,3 +553,31 @@ def atualizar_fotos(produto_id: int, dados: dict, token: str = Depends(get_usuar
     p.fotos = dados.get("fotos", [])
     db.commit(); db.refresh(p)
     return p
+
+# ============================================================
+# CONFIGURAÇÕES
+# ============================================================
+@app.get("/configuracoes/loja")
+def configs_publicas(db: Session = Depends(get_db)):
+    chaves = ["loja_nome", "loja_descricao"]
+    configs = db.query(models.Configuracao).filter(models.Configuracao.chave.in_(chaves)).all()
+    return {c.chave: c.valor for c in configs}
+@app.get("/admin/configuracoes")
+def listar_configuracoes(usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    configs = db.query(models.Configuracao).all()
+    return {c.chave: {"valor": c.valor, "descricao": c.descricao} for c in configs}
+
+@app.put("/admin/configuracoes")
+def salvar_configuracoes(dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    for chave, valor in dados.items():
+        config = db.query(models.Configuracao).filter(models.Configuracao.chave == chave).first()
+        if config:
+            config.valor = str(valor)
+        else:
+            db.add(models.Configuracao(chave=chave, valor=str(valor)))
+    db.commit()
+    return {"ok": True}

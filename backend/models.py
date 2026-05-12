@@ -78,3 +78,10 @@ class Pedido(Base):
     status = Column(String, default="pendente")
     itens = Column(JSON)
     codigo_rastreio = Column(String, default="")
+
+class Configuracao(Base):
+    __tablename__ = "configuracoes"
+    id = Column(Integer, primary_key=True, index=True)
+    chave = Column(String, unique=True, index=True)
+    valor = Column(Text, default="")
+    descricao = Column(String, default="")

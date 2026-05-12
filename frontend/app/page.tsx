@@ -26,6 +26,8 @@ export default function Home() {
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [abaPeril, setAbaPerfil] = useState<"dados"|"pedidos"|"rastreamento">("dados");
   const [loading, setLoading] = useState(true);
+  const [lojaNome, setLojaNome] = useState("JC GAMES STORE");
+  const [lojaDesc, setLojaDesc] = useState("Hardware de Elite");
   const [sincronizando, setSincronizando] = useState(false);
   const [menuMobile, setMenuMobile] = useState(false);
 
@@ -88,6 +90,10 @@ export default function Home() {
     if (abrirCheckout) { setCheckoutAberto(true); window.history.replaceState({}, "", "/"); return; }
     if (!addId) return;
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
+      fetch(`${API}/configuracoes/loja`).then(r => r.ok?r.json():{}).then((cfg: Record<string,string>) => {
+        if(cfg.loja_nome) setLojaNome(cfg.loja_nome);
+        if(cfg.loja_descricao) setLojaDesc(cfg.loja_descricao);
+      }).catch(()=>{});
       const p = data.find((p: Produto) => p.id === parseInt(addId));
       if (p && p.estoque > 0) {
         setCarrinho(prev => {
@@ -104,6 +110,10 @@ export default function Home() {
 
   useEffect(() => {
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
+      fetch(`${API}/configuracoes/loja`).then(r => r.ok?r.json():{}).then((cfg: Record<string,string>) => {
+        if(cfg.loja_nome) setLojaNome(cfg.loja_nome);
+        if(cfg.loja_descricao) setLojaDesc(cfg.loja_descricao);
+      }).catch(()=>{});
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
       if (tk) {
@@ -251,7 +261,7 @@ export default function Home() {
         <div className="max-w-[1600px] mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
             <img src="/logo.png" alt="JC Games" className="w-8 h-8 object-contain rounded-lg"/>
-            <span className="font-black text-base sm:text-lg tracking-tight hidden sm:block"><span className="text-purple-400">JC GAMES</span><span className="text-white/90"> STORE</span></span>
+            <span className="font-black text-base sm:text-lg tracking-tight hidden sm:block"><span className="text-purple-400">{lojaNome.split(" ").slice(0,-1).join(" ")||"JC GAMES"}</span><span className="text-white/90"> {lojaNome.split(" ").slice(-1)[0]||"STORE"}</span></span>
           </a>
           <div className="flex-1 max-w-md hidden md:block">
             <input placeholder="🔍 Buscar produtos..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-purple-500/50 focus:bg-white/10 outline-none transition-all"/>
@@ -293,7 +303,7 @@ export default function Home() {
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Hardware de <span className="text-purple-400">Elite</span></h1>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{lojaDesc.includes(" de ")?(lojaDesc.split(" de ")[0]+" de "):lojaDesc} {lojaDesc.includes(" de ")?<span className="text-purple-400">{lojaDesc.split(" de ")[1]}</span>:""}</h1>
           <p className="text-gray-500 text-sm mt-0.5">{produtosFiltrados.length} produto{produtosFiltrados.length!==1?"s":""} disponível{produtosFiltrados.length!==1?"s":""}</p>
         </div>
         {busca&&<button onClick={()=>setBusca("")} className="text-sm text-purple-400 hover:text-blue-300 transition-all">✕ Limpar</button>}

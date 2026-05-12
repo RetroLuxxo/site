@@ -9,7 +9,7 @@ type Dashboard = { total_pedidos: number; pendentes: number; enviados: number; e
 
 export default function Admin() {
   const [token, setToken] = useState("");
-  const [aba, setAba] = useState<"dashboard"|"pedidos"|"produtos">("dashboard");
+  const [aba, setAba] = useState<"dashboard"|"pedidos"|"produtos"|"configuracoes">("dashboard");
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -18,6 +18,8 @@ export default function Admin() {
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [configs, setConfigs] = useState<Record<string,{valor:string;descricao:string}>>({});
+  const [salvandoConfig, setSalvandoConfig] = useState(false);
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [enviandoStatus, setEnviandoStatus] = useState(false);
   const [novoProduto, setNovoProduto] = useState({ nome: "", descricao: "", preco: "", imagem_url: "", estoque: "", peso_kg: "0.5", comprimento_cm: "15", largura_cm: "15", altura_cm: "15" });
@@ -66,17 +68,29 @@ export default function Admin() {
   const carregarDados = async (tk: string) => {
     setLoading(true);
     try {
-      const [dash, peds, prods] = await Promise.all([
+      const [dash, peds, prods, cfgs] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers: H(tk) }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/pedidos`, { headers: H(tk) }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/produtos`).then(r => r.json()),
+        fetch(`${API}/admin/configuracoes`, { headers: H(tk) }).then(r => r.ok ? r.json() : {}),
       ]);
       if (!dash) { window.location.href = "/"; return; }
-      setDashboard(dash); setPedidos(peds); setProdutos(prods);
+      setDashboard(dash); setPedidos(peds); setProdutos(prods); setConfigs(cfgs);
     } finally { setLoading(false); }
   };
 
   const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
+
+  const salvarConfigs = async () => {
+    setSalvandoConfig(true);
+    try {
+      const payload: Record<string,string> = {};
+      Object.entries(configs).forEach(([k,v]) => { payload[k] = v.valor; });
+      const r = await fetch(`${API}/admin/configuracoes`, { method: "PUT", headers: H(token), body: JSON.stringify(payload) });
+      if (r.ok) showMsg("✅ Configurações salvas!");
+      else showMsg("❌ Erro ao salvar");
+    } finally { setSalvandoConfig(false); }
+  };
 
   const atualizarStatus = async (id: number, status: string, rastreio?: string) => {
     setEnviandoStatus(true);
@@ -186,10 +200,10 @@ export default function Admin() {
       {/* ABAS */}
       <div className="glass border-b border-white/5">
         <div className="max-w-7xl mx-auto flex">
-          {(["dashboard","pedidos","produtos"] as const).map(a => (
+          {(["dashboard","pedidos","produtos","configuracoes"] as const).map(a => (
             <button key={a} onClick={() => setAba(a)}
               className={`flex-1 py-3.5 text-xs font-black uppercase tracking-wide transition-all ${aba===a?"text-blue-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
-              {a==="dashboard"?"📊 Dashboard":a==="pedidos"?"📦 Pedidos":"🛍️ Produtos"}
+              {a==="dashboard"?"📊 Dashboard":a==="pedidos"?"📦 Pedidos":a==="produtos"?"🛍️ Produtos":"⚙️ Config"}
             </button>
           ))}
         </div>
@@ -325,6 +339,44 @@ export default function Admin() {
         )}
 
         {/* PRODUTOS */}
+        {aba==="configuracoes" && (
+        <div className="space-y-6 max-w-2xl">
+          {msg&&<div className="bg-white/5 border border-white/8 rounded-xl p-3 text-sm">{msg}</div>}
+          {[
+            {titulo:"🏦 PagBank", chaves:[
+              {k:"pagbank_token",label:"Token",tipo:"password"},
+              {k:"pagbank_env",label:"Ambiente (sandbox / production)",tipo:"text"},
+            ]},
+            {titulo:"📧 Email", chaves:[
+              {k:"email_user",label:"Gmail",tipo:"text"},
+              {k:"email_pass",label:"Senha de App",tipo:"password"},
+              {k:"email_admin",label:"Email Admin",tipo:"text"},
+            ]},
+            {titulo:"🖼️ Cloudinary", chaves:[
+              {k:"cloudinary_cloud_name",label:"Cloud Name",tipo:"text"},
+              {k:"cloudinary_preset",label:"Upload Preset",tipo:"text"},
+            ]},
+            {titulo:"🏪 Loja", chaves:[
+              {k:"loja_nome",label:"Nome da Loja",tipo:"text"},
+              {k:"loja_descricao",label:"Descrição",tipo:"text"},
+            ]},
+          ].map(secao=>(
+            <div key={secao.titulo} className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-3">
+              <p className="font-black text-sm text-purple-400 mb-2">{secao.titulo}</p>
+              {secao.chaves.map(({k,label,tipo})=>(
+                <div key={k}>
+                  <p className="text-xs text-gray-500 mb-1">{label}</p>
+                  <input type={tipo} value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder={configs[k]?.descricao||label}/>
+                </div>
+              ))}
+            </div>
+          ))}
+          <button onClick={salvarConfigs} disabled={salvandoConfig} className="w-full bg-purple-700 hover:bg-purple-600 disabled:opacity-50 py-4 rounded-xl font-black text-sm transition-all">
+            {salvandoConfig?"Salvando...":"💾 Salvar Configurações"}
+          </button>
+        </div>
+        )}
+
         {aba==="produtos" && (
           <div className="space-y-4 fade-in">
             <div className="flex items-center justify-between">
