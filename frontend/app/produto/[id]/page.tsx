@@ -17,14 +17,40 @@ export default function ProdutoPage() {
   const [avMsg, setAvMsg] = useState("");
   const [qtdCarrinho, setQtdCarrinho] = useState(0);
   const [adicionado, setAdicionado] = useState(false);
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
+  const [carrinho, setCarrinho] = useState<{produto:Produto;quantidade:number}[]>([]);
 
   useEffect(() => {
     try {
       const c = JSON.parse(localStorage.getItem("carrinho") || "[]");
+      setCarrinho(c);
       const item = c.find((i: any) => i.produto?.id === parseInt(id as string));
       setQtdCarrinho(item ? item.quantidade : 0);
     } catch {}
   }, [id]);
+
+  const adicionarAoCarrinho = () => {
+    if (!produto) return;
+    const c = JSON.parse(localStorage.getItem("carrinho") || "[]");
+    const ex = c.find((i: any) => i.produto?.id === produto.id);
+    const novo = ex ? c.map((i: any) => i.produto?.id===produto.id?{...i,quantidade:i.quantidade+1}:i) : [...c,{produto,quantidade:1}];
+    localStorage.setItem("carrinho", JSON.stringify(novo));
+    setCarrinho(novo);
+    const item = novo.find((i: any) => i.produto?.id === produto.id);
+    setQtdCarrinho(item ? item.quantidade : 0);
+    setAdicionado(true);
+    setCarrinhoAberto(true);
+  };
+
+  const removerDoCarrinho = (prodId: number) => {
+    const novo = carrinho.filter((i: any) => i.produto?.id !== prodId);
+    localStorage.setItem("carrinho", JSON.stringify(novo));
+    setCarrinho(novo);
+    const item = novo.find((i: any) => i.produto?.id === produto?.id);
+    setQtdCarrinho(item ? item.quantidade : 0);
+  };
+
+  const totalCarrinho = carrinho.reduce((s: number, i: any) => s + i.produto.preco * i.quantidade, 0);
 
   useEffect(() => {
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
@@ -115,9 +141,9 @@ export default function ProdutoPage() {
                 </a>
               )}
             </div>
-            <a href="/" className="block w-full bg-white/5 border border-white/10 hover:bg-white/10 py-3 rounded-xl font-black text-center text-xs text-gray-400 transition-all">
-              Ver todos os produtos
-            </a>
+            <button onClick={()=>setCarrinhoAberto(true)} className="w-full bg-white/5 border border-white/10 hover:bg-white/10 py-3 rounded-xl font-black text-center text-xs text-gray-400 transition-all">
+              🛒 Ver Carrinho {carrinho.length > 0 && "(" + carrinho.reduce((s,i)=>s+i.quantidade,0) + ")"}
+            </button>
           </div>
         </div>
         <div className="max-w-2xl">
@@ -150,6 +176,51 @@ export default function ProdutoPage() {
           </div>
         </div>
       </main>
+
+      {/* Carrinho Sidebar */}
+      {carrinhoAberto && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={()=>setCarrinhoAberto(false)}/>
+          <div className="w-full sm:w-96 h-full flex flex-col" style={{background:"rgba(10,0,20,0.97)",borderLeft:"1px solid rgba(139,47,201,0.2)"}}>
+            <div className="flex justify-between items-center px-5 py-4 border-b border-white/6">
+              <h2 className="font-black text-lg">Carrinho</h2>
+              <button onClick={()=>setCarrinhoAberto(false)} className="text-gray-600 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/6 transition-all">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {carrinho.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <p className="text-5xl mb-4">🛒</p>
+                  <p className="text-gray-600 text-sm">Seu carrinho está vazio</p>
+                </div>
+              ) : carrinho.map((item: any) => (
+                <div key={item.produto.id} className="bg-white/4 border border-white/8 rounded-2xl p-3 flex gap-3">
+                  <img src={item.produto.imagem_url} alt={item.produto.nome} className="w-16 h-16 object-contain rounded-xl bg-white flex-shrink-0 p-1"/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-200 line-clamp-2">{item.produto.nome}</p>
+                    <p className="text-green-400 font-black text-sm mt-1">R$ {(item.produto.preco*item.quantidade).toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
+                    <p className="text-gray-500 text-xs">{item.quantidade}x</p>
+                  </div>
+                  <button onClick={()=>removerDoCarrinho(item.produto.id)} className="text-gray-600 hover:text-red-400 transition-all self-start p-1">✕</button>
+                </div>
+              ))}
+            </div>
+            {carrinho.length > 0 && (
+              <div className="p-4 border-t border-white/6 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 text-sm">Total</span>
+                  <span className="font-black text-green-400 text-lg">R$ {totalCarrinho.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span>
+                </div>
+                <a href="/?carrinho=1" className="block w-full bg-green-600 hover:bg-green-500 py-3.5 rounded-xl font-black text-sm text-center transition-all">
+                  Finalizar Compra →
+                </a>
+                <a href="/" className="block w-full bg-white/5 border border-white/10 hover:bg-white/10 py-2.5 rounded-xl font-black text-xs text-gray-400 text-center transition-all">
+                  ← Ver todos os produtos
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

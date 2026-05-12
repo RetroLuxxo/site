@@ -82,6 +82,8 @@ export default function Home() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const addId = params.get("add");
+    const abrirCarrinho = params.get("carrinho");
+    if (abrirCarrinho) { setCarrinhoAberto(true); window.history.replaceState({}, "", "/"); return; }
     if (!addId) return;
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       const p = data.find((p: Produto) => p.id === parseInt(addId));
@@ -160,7 +162,7 @@ export default function Home() {
   const salvarPerfil = async () => { const r = await fetch(`${API}/auth/me`,{method:"PUT",headers:authHeaders(),body:JSON.stringify(perfilForm)}); if (r.ok) { const u=await r.json(); setUsuario(u); preencherFormComUsuario(u); setPerfilMsg("✅ Dados salvos!"); setTimeout(()=>setPerfilMsg(""),3000); } };
   const alterarSenha = async () => { if (senhaForm.nova_senha!==senhaForm.confirmar) { setPerfilMsg("❌ Senhas não conferem!"); return; } const r=await fetch(`${API}/auth/senha`,{method:"PUT",headers:authHeaders(),body:JSON.stringify({senha_atual:senhaForm.senha_atual,nova_senha:senhaForm.nova_senha})}); if (r.ok) { setPerfilMsg("✅ Senha alterada!"); setSenhaForm({senha_atual:"",nova_senha:"",confirmar:""}); } else { const d=await r.json(); setPerfilMsg(`❌ ${d.detail}`); } setTimeout(()=>setPerfilMsg(""),3000); };
   const cancelarPedido = async (id:number) => { if (!confirm("Cancelar?")) return; const r=await fetch(`${API}/pedidos/${id}/cancelar`,{method:"PUT",headers:authHeaders()}); if (r.ok) { setPedidos(prev=>prev.map(p=>p.id===id?{...p,status:"cancelado"}:p)); setPedidoSelecionado(null); } };
-  const adicionarAoCarrinho = async (p:Produto) => { if (p.estoque===0) return; setCarrinho(prev=>{const ex=prev.find(i=>i.produto.id===p.id); return ex?prev.map(i=>i.produto.id===p.id?{...i,quantidade:i.quantidade+1}:i):[...prev,{produto:p,quantidade:1}];}); await adicionarCarrinhoDB(p); };
+  const adicionarAoCarrinho = async (p:Produto) => { if (p.estoque===0) return; setCarrinho(prev=>{const ex=prev.find(i=>i.produto.id===p.id); if(ex&&ex.quantidade>=p.estoque) return prev; return ex?prev.map(i=>i.produto.id===p.id?{...i,quantidade:i.quantidade+1}:i):[...prev,{produto:p,quantidade:1}];}); await adicionarCarrinhoDB(p); };
   const removerDoCarrinho = async (id:number) => { setCarrinho(prev=>prev.filter(i=>i.produto.id!==id)); await removerCarrinhoDB(id); };
   const alterarQuantidade = (id:number,d:number) => setCarrinho(prev=>prev.map(i=>{if(i.produto.id!==id)return i;const q=i.quantidade+d;return(q<=0||q>i.produto.estoque)?i:{...i,quantidade:q};}));
 
