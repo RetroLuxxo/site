@@ -21,6 +21,7 @@ export default function Admin() {
   const [msg, setMsg] = useState("");
   const [configs, setConfigs] = useState<Record<string,{valor:string;descricao:string}>>({});
   const [salvandoConfig, setSalvandoConfig] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [dadosUsuario, setDadosUsuario] = useState<UsuarioAdmin|null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [enviandoStatus, setEnviandoStatus] = useState(false);
@@ -456,12 +457,41 @@ export default function Admin() {
 
         {aba==="produtos" && (
           <div className="space-y-4 fade-in">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-xl font-black">Produtos ({produtos.length})</h2>
-              <button onClick={() => setShowNovoProduto(!showNovoProduto)}
-                className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl font-black text-sm transition-all btn-press">
-                + Novo
-              </button>
+              <div className="flex gap-2">
+                <label className="cursor-pointer bg-green-600 hover:bg-green-500 px-4 py-2 rounded-xl font-black text-sm transition-all btn-press flex items-center gap-2">
+                  {importando ? "⏳ Importando..." : "📥 CSV"}
+                  <input type="file" accept=".csv" className="hidden" onChange={async e => {
+                    if(!e.target.files?.length) return;
+                    setImportando(true);
+                    const file = e.target.files[0];
+                    const text = await file.text();
+                    const lines = text.split("\n").filter(l => l.trim());
+                    const headers = lines[0].split(",").map(h => h.trim().replace(/"/g,""));
+                    let ok = 0, erro = 0;
+                    for(let i=1;i<lines.length;i++){
+                      const vals = lines[i].split(",").map(v => v.trim().replace(/"/g,""));
+                      const row: any = {};
+                      headers.forEach((h,j) => row[h] = vals[j]||"");
+                      const nome = row["Título"] || row["titulo"] || row["nome"] || row["Nome"] || "";
+                      const preco = parseFloat((row["Preço"] || row["preco"] || row["Preço (R$)"] || "0").replace(".","").replace(",","."));
+                      const imagem = row["Imagem"] || row["imagem"] || row["imagem_url"] || "";
+                      if(!nome || !preco) continue;
+                      const r = await fetch(`${API}/produtos`, {method:"POST", headers:H(token), body:JSON.stringify({nome,descricao:nome,preco,imagem_url:imagem||"",estoque:10,peso_kg:0.5,comprimento_cm:15,largura_cm:15,altura_cm:15})});
+                      if(r.ok) ok++; else erro++;
+                    }
+                    setImportando(false);
+                    showMsg(`✅ ${ok} importados${erro>0?`, ❌ ${erro} erros`:""}`);
+                    carregarDados(token);
+                    e.target.value = "";
+                  }}/>
+                </label>
+                <button onClick={() => setShowNovoProduto(!showNovoProduto)}
+                  className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl font-black text-sm transition-all btn-press">
+                  + Novo
+                </button>
+              </div>
             </div>
 
             {showNovoProduto && (
