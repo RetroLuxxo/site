@@ -368,7 +368,7 @@ export default function Admin() {
               {k:"loja_tamanho_nome_loja",label:"Tamanho do Nome da Loja (px)",tipo:"text"},
               {k:"loja_cor_nome_loja",label:"Cor Parte 1 do Nome",tipo:"color"},
               {k:"loja_cor_nome_loja2",label:"Cor Parte 2 do Nome",tipo:"color"},
-              {k:"loja_fonte",label:"Fonte (ex: Orbitron, Rajdhani, Press Start 2P, Exo 2)",tipo:"text"},
+              {k:"loja_fonte",label:"Fonte Google Fonts",tipo:"fonte"},
               {k:"loja_nome",label:"Nome da Loja",tipo:"text"},
               {k:"loja_descricao",label:"Descrição",tipo:"text"},
             ]},
@@ -403,6 +403,26 @@ export default function Admin() {
                     <div className="flex gap-3 items-center">
                       <input type="color" value={configs[k]?.valor||"#8B2FC9"} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-12 h-12 rounded-xl cursor-pointer border-0 bg-transparent"/>
                       <input type="text" value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="flex-1 bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder="#8B2FC9"/>
+                    </div>
+                  ) : tipo==="fonte" ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <select
+                          value={configs[k]?.valor||"Orbitron"}
+                          onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))}
+                          className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500/70 outline-none transition-all appearance-none cursor-pointer"
+                          style={{fontFamily:configs[k]?.valor||"Orbitron"}}
+                        >
+                          {["Orbitron","Rajdhani","Exo 2","Audiowide","Quantico","Righteous","Press Start 2P","Russo One","Aldrich","Oxanium","Chakra Petch","Share Tech Mono","VT323","Silkscreen"].map(f=>(
+                            <option key={f} value={f} style={{fontFamily:f}}>{f}</option>
+                          ))}
+                        </select>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▼</span>
+                      </div>
+                      <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${(configs[k]?.valor||"Orbitron").replace(/ /g,"+")}&display=swap`}/>
+                      <p className="text-center py-2 rounded-xl bg-white/5 text-sm" style={{fontFamily:configs[k]?.valor||"Orbitron"}}>
+                        Preview: JC Games Store
+                      </p>
                     </div>
                   ) : (
                     <input type={tipo} value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder={configs[k]?.descricao||label}/>
