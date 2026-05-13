@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? (window.location.port === "3000" ? window.location.protocol + "//" + window.location.hostname + ":8000" : window.location.protocol + "//" + window.location.host) : "http://localhost:8000");
 
@@ -7,6 +7,35 @@ type Pedido = { id: number; nome: string; email: string; telefone: string; statu
 type Produto = { id: number; nome: string; preco: number; estoque: number; imagem_url: string; descricao: string; };
 type Dashboard = { total_pedidos: number; pendentes: number; enviados: number; entregues: number; cancelados: number; total_faturado: number; total_usuarios: number; total_produtos: number; };
 type UsuarioAdmin = { id: number; email: string; nome: string; is_admin: boolean; is_superadmin: boolean; };
+
+const FONTES = ["Orbitron","Rajdhani","Exo 2","Audiowide","Quantico","Righteous","Press Start 2P","Russo One","Aldrich","Oxanium","Chakra Petch","Share Tech Mono","VT323","Silkscreen"];
+
+function FontePicker({valor, onChange}: {valor:string, onChange:(v:string)=>void}) {
+  const [aberto, setAberto] = React.useState(false);
+  return (
+    <div className="space-y-2">
+      <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?${FONTES.map(f=>`family=${f.replace(/ /g,"+")}:wght@400;700`).join("&")}&display=swap`}/>
+      <div className="relative">
+        <button type="button" onClick={()=>setAberto(!aberto)} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white text-left flex justify-between items-center hover:border-purple-500/70 transition-all" style={{fontFamily:`'${valor}',sans-serif`}}>
+          <span>{valor}</span>
+          <span className="text-gray-400">{aberto?"▲":"▼"}</span>
+        </button>
+        {aberto && (
+          <div className="absolute z-50 w-full mt-1 bg-gray-900 border border-white/12 rounded-xl overflow-hidden shadow-2xl max-h-64 overflow-y-auto">
+            {FONTES.map(f=>(
+              <button key={f} type="button" onClick={()=>{onChange(f);setAberto(false);}} className={"w-full px-4 py-3 text-left text-sm hover:bg-purple-700/40 transition-all "+(valor===f?"bg-purple-700/60 text-purple-300":"text-white")} style={{fontFamily:`'${f}',sans-serif`}}>
+                {f}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-center py-3 rounded-xl bg-white/5 text-base font-bold" style={{fontFamily:`'${valor}',sans-serif`}}>
+        Preview — {valor}
+      </p>
+    </div>
+  );
+}
 
 export default function Admin() {
   const [token, setToken] = useState("");
@@ -405,25 +434,7 @@ export default function Admin() {
                       <input type="text" value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="flex-1 bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder="#8B2FC9"/>
                     </div>
                   ) : tipo==="fonte" ? (
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <select
-                          value={configs[k]?.valor||"Orbitron"}
-                          onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))}
-                          className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500/70 outline-none transition-all appearance-none cursor-pointer"
-                          style={{fontFamily:configs[k]?.valor||"Orbitron"}}
-                        >
-                          {["Orbitron","Rajdhani","Exo 2","Audiowide","Quantico","Righteous","Press Start 2P","Russo One","Aldrich","Oxanium","Chakra Petch","Share Tech Mono","VT323","Silkscreen"].map(f=>(
-                            <option key={f} value={f} style={{fontFamily:f}}>{f}</option>
-                          ))}
-                        </select>
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▼</span>
-                      </div>
-                      <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${(configs[k]?.valor||"Orbitron").replace(/ /g,"+")}:wght@400;700;900&display=swap`}/>
-                      <p className="text-center py-3 rounded-xl bg-white/5 text-base font-bold" style={{fontFamily:`'${configs[k]?.valor||"Orbitron"}', sans-serif`}}>
-                        {configs[k]?.valor||"Orbitron"} — Preview da Fonte
-                      </p>
-                    </div>
+                    <FontePicker valor={configs[k]?.valor||"Orbitron"} onChange={v=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:v}}))}/>
                   ) : (
                     <input type={tipo} value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder={configs[k]?.descricao||label}/>
                   )}
