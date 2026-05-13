@@ -48,6 +48,8 @@ export default function Admin() {
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [novoPedido, setNovoPedido] = useState(false);
+  const [totalPedidosAntes, setTotalPedidosAntes] = useState(0);
   const [configs, setConfigs] = useState<Record<string,{valor:string;descricao:string}>>({});
   const [salvandoConfig, setSalvandoConfig] = useState(false);
   const [importando, setImportando] = useState(false);
@@ -95,6 +97,29 @@ export default function Admin() {
     setToken(tk);
     carregarDados(tk);
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    const verificarNovos = async () => {
+      try {
+        const r = await fetch(`${API}/admin/pedidos`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
+        if (!r.ok) return;
+        const p = await r.json();
+        const total = p.filter((x: any) => x.status === "pendente").length;
+        setTotalPedidosAntes(prev => {
+          if (prev > 0 && total > prev) {
+            setNovoPedido(true);
+            try { new Audio("https://www.soundjay.com/buttons/sounds/button-09a.mp3").play(); } catch {}
+            setTimeout(() => setNovoPedido(false), 5000);
+          }
+          return total;
+        });
+      } catch {}
+    };
+    verificarNovos();
+    const interval = setInterval(verificarNovos, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   const H = (tk: string) => ({ "Content-Type": "application/json", Authorization: `Bearer ${tk}` });
 
@@ -220,6 +245,12 @@ export default function Admin() {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <a href="/" className="text-xs text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-3 py-2 rounded-xl transition-all btn-press">← Loja</a>
+            {novoPedido && (
+              <div className="flex items-center gap-2 bg-green-500/20 border border-green-500/40 rounded-xl px-3 py-1.5 animate-pulse">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                <span className="text-green-400 text-xs font-black">🔔 Novo Pedido!</span>
+              </div>
+            )}
             <button onClick={() => { localStorage.removeItem("token"); window.location.href = "/"; }} className="text-xs text-red-400 border border-red-400/20 hover:bg-red-400/10 px-3 py-2 rounded-xl transition-all btn-press">Sair</button>
           </div>
         </div>
@@ -238,7 +269,8 @@ export default function Admin() {
           {(["dashboard","pedidos","produtos",...(dadosUsuario?.is_superadmin ? ["configuracoes"] : [])] as const).map((a: any) => (
             <button key={a} onClick={() => setAba(a)}
               className={`flex-1 py-3.5 text-xs font-black uppercase tracking-wide transition-all ${aba===a?"text-blue-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
-              {a==="dashboard"?"📊 Dashboard":a==="pedidos"?"📦 Pedidos":a==="produtos"?"🛍️ Produtos":"⚙️ Config"}
+              {a==="dashboard"?"📊 Dashboard":a==="produtos"?"🛍️ Produtos":a==="configuracoes"?"⚙️ Config":
+                <span className="flex items-center gap-1">📦 Pedidos{totalPedidosAntes>0&&<span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-black">{totalPedidosAntes}</span>}</span>}
             </button>
           ))}
         </div>
