@@ -419,9 +419,9 @@ export default function Admin() {
                         </select>
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▼</span>
                       </div>
-                      <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${(configs[k]?.valor||"Orbitron").replace(/ /g,"+")}&display=swap`}/>
-                      <p className="text-center py-2 rounded-xl bg-white/5 text-sm" style={{fontFamily:configs[k]?.valor||"Orbitron"}}>
-                        Preview: JC Games Store
+                      <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${(configs[k]?.valor||"Orbitron").replace(/ /g,"+")}:wght@400;700;900&display=swap`}/>
+                      <p className="text-center py-3 rounded-xl bg-white/5 text-base font-bold" style={{fontFamily:`'${configs[k]?.valor||"Orbitron"}', sans-serif`}}>
+                        {configs[k]?.valor||"Orbitron"} — Preview da Fonte
                       </p>
                     </div>
                   ) : (
