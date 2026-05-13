@@ -69,6 +69,7 @@ export default function Home() {
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", cpf: "", numero: "", complemento: "" });
   const [pedidoFinalizado, setPedidoFinalizado] = useState<number | null>(null);
   const [pixData, setPixData] = useState<{qr_code:string;qr_code_image:string;total:number}|null>(null);
+  const [pixCopiado, setPixCopiado] = useState(false);
   const [formaPagamento, setFormaPagamento] = useState<"pix"|"cartao">("pix");
   const [cartaoForm, setCartaoForm] = useState({numero:"",nome:"",validade:"",cvv:"",parcelas:"1"});
   const [cartaoErro, setCartaoErro] = useState("");
@@ -462,8 +463,10 @@ export default function Home() {
                 <p className="text-xs text-gray-300 break-all select-all">{pixData.qr_code}</p>
               </div>
               <button onClick={()=>{
-  alert('Código PIX copiado!');
-}} className="w-full bg-purple-700 hover:bg-purple-600 py-2.5 rounded-xl font-black text-xs mb-3 transition-all btn-press">📋 Copiar Código PIX</button>
+                try{navigator.clipboard.writeText(pixData?.qr_code||"");}
+                catch{const t=document.createElement("textarea");t.value=pixData?.qr_code||"";document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);}
+                setPixCopiado(true); setTimeout(()=>setPixCopiado(false),3000);
+              }} className="w-full bg-purple-700 hover:bg-purple-600 py-2.5 rounded-xl font-black text-xs mb-3 transition-all btn-press btn-dinamico">{pixCopiado?"✅ Copiado!":"📋 Copiar Código PIX"}</button>
               <p className="text-green-400 font-black text-lg mb-4">Total: R$ {pixData.total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
             </>):(<p className="text-gray-500 text-sm mb-4">Você receberá um email de confirmação.</p>)}
             <button onClick={()=>{setPedidoFinalizado(null);setPixData(null);}} className="w-full bg-white/6 border border-white/10 hover:bg-white/10 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Continuar Comprando</button>
