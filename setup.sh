@@ -161,8 +161,7 @@ Chave: $JWT_KEY
 
 APOS SUBIR
 ----------
-Adminer > Comando SQL:
-UPDATE usuarios SET is_admin = TRUE WHERE email = '$EMAIL_ADMIN';
+Rode: make tornar-superadmin admin=$EMAIL_ADMIN
 
 GITHUB
 ------
@@ -171,6 +170,37 @@ https://github.com/RetroLuxxo/site
 CREDS
 
 echo ""
+# Inserir configs iniciais no banco após subir
+echo -e "${YELLOW}Aguardando banco inicializar...${NC}"
+sleep 5
+docker exec ecommerce_db psql -U admin -d jc_games_db -c "
+INSERT INTO configuracoes (chave, valor, descricao) VALUES
+('pagbank_token', '${PAGBANK_TOKEN}', 'Token do PagBank'),
+('pagbank_env', '${PAGBANK_ENV}', 'Ambiente PagBank'),
+('email_user', '${EMAIL_USER}', 'Email Gmail'),
+('email_pass', '${EMAIL_PASS}', 'Senha de App Gmail'),
+('email_admin', '${EMAIL_ADMIN}', 'Email admin'),
+('cloudinary_cloud_name', '${CLOUDINARY_CLOUD_NAME}', 'Cloud Name Cloudinary'),
+('cloudinary_preset', '${CLOUDINARY_PRESET}', 'Upload Preset Cloudinary'),
+('loja_nome', 'JC Games Store', 'Nome da loja'),
+('loja_descricao', 'Hardware de Elite', 'Descrição da loja'),
+('loja_logo', '', 'Logo da loja'),
+('loja_cor_primaria', '#8B2FC9', 'Cor primária'),
+('loja_cor_fundo', '#0a0010', 'Cor de fundo'),
+('loja_cor_botao', '#8B2FC9', 'Cor dos botões'),
+('loja_cor_texto', '#ffffff', 'Cor do texto'),
+('loja_cor_texto_botao', '#ffffff', 'Cor texto botões'),
+('loja_cor_nome_loja', '#8B2FC9', 'Cor nome loja parte 1'),
+('loja_cor_nome_loja2', '#ffffff', 'Cor nome loja parte 2'),
+('loja_transparencia_cards', '0.08', 'Transparência cards'),
+('loja_tamanho_fonte', '14', 'Tamanho fonte'),
+('loja_tamanho_fonte_botao', '12', 'Tamanho fonte botões'),
+('loja_tamanho_logo', '32', 'Tamanho logo'),
+('loja_tamanho_nome_loja', '18', 'Tamanho nome loja'),
+('loja_fonte', 'Orbitron', 'Fonte Google Fonts')
+ON CONFLICT (chave) DO NOTHING;
+" 2>/dev/null || echo "⚠️  Banco ainda não pronto — rode make up primeiro"
+
 echo -e "${GREEN}✅ Configuracao concluida!${NC}"
 echo -e "📄 Credenciais: ~/credenciais.txt"
 echo ""
@@ -178,7 +208,7 @@ echo -e "${YELLOW}━━━ PRÓXIMOS PASSOS ━━━${NC}"
 echo -e "1️⃣  Suba o projeto:  ${BLUE}make up${NC}"
 echo -e "2️⃣  Acesse a loja:   ${BLUE}${FRONTEND_URL}${NC}"
 echo -e "3️⃣  Faça o CADASTRO com o email: ${YELLOW}${EMAIL_ADMIN}${NC}"
-echo -e "4️⃣  Depois rode este comando para virar admin:"
+echo -e "4️⃣  Depois rode este comando para virar Super Admin:"
 echo ""
-echo -e "${YELLOW}docker exec ecommerce_db psql -U admin -d jc_games_db -c \"UPDATE usuarios SET is_admin = TRUE WHERE email = '${EMAIL_ADMIN}';\"${NC}"
+echo -e "${YELLOW}make tornar-superadmin admin=${EMAIL_ADMIN}${NC}"
 echo ""
