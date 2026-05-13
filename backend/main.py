@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional
 import models, schemas
 from database import SessionLocal, engine
@@ -10,6 +11,26 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta
 
 models.Base.metadata.create_all(bind=engine)
+
+# Migrations automáticas — adiciona colunas novas sem perder dados
+def run_migrations():
+    try:
+        with engine.connect() as conn:
+            migrations = [
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS is_superadmin BOOLEAN DEFAULT FALSE",
+                "ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS descricao VARCHAR DEFAULT ''",
+                "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS fotos JSON DEFAULT '[]'",
+            ]
+            for sql in migrations:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception as e:
+                    print(f"Migration skipped: {e}")
+    except Exception as e:
+        print(f"Migration error: {e}")
+
+run_migrations()
 
 app = FastAPI(title="JC Games Backend API")
 
