@@ -569,7 +569,14 @@ export default function Home() {
                           <div key={i} className="flex items-center gap-3"><div className={`w-3 h-3 rounded-full flex-shrink-0 ${e.d?"bg-emerald-500":"bg-white/10"}`}/><p className={`text-sm ${e.d?"text-gray-200 font-semibold":"text-gray-600"}`}>{e.l}</p></div>
                         ))}
                       </div>
-                      {p.codigo_rastreio&&<div className="bg-blue-500/10 border border-purple-500/20 rounded-xl p-4"><p className="text-xs text-purple-400 font-black uppercase tracking-wider mb-1">Código de Rastreio</p><p className="font-black text-white text-lg tracking-widest">{p.codigo_rastreio}</p><a href={`https://www.correios.com.br/rastreamento#${p.codigo_rastreio}`} target="_blank" className="inline-block mt-2 text-xs text-purple-400 hover:text-blue-300 underline transition-all">Rastrear nos Correios →</a></div>}
+                      {p.codigo_rastreio&&<div className="bg-blue-500/10 border border-purple-500/20 rounded-xl p-4">
+  <p className="text-xs text-purple-400 font-black uppercase tracking-wider mb-1">Código de Rastreio</p>
+  <p className="font-black text-white text-lg tracking-widest">{p.codigo_rastreio}</p>
+  <div className="flex gap-2 mt-2">
+    <a href={`https://www.correios.com.br/rastreamento#${p.codigo_rastreio}`} target="_blank" className="text-xs text-purple-400 hover:text-blue-300 underline transition-all">Rastrear nos Correios →</a>
+    <button onClick={()=>{try{navigator.clipboard.writeText(p.codigo_rastreio||"")}catch{const t=document.createElement("textarea");t.value=p.codigo_rastreio||"";document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);}}} className="text-xs bg-purple-700 hover:bg-purple-600 px-3 py-1 rounded-lg font-black transition-all">📋 Copiar</button>
+  </div>
+</div>}
                       <p className="text-xs text-gray-600 mt-3">Prazo: {p.frete_prazo} dia{p.frete_prazo>1?"s":""} útil{p.frete_prazo>1?"eis":""}</p>
                     </div>
                   ))}
