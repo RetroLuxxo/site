@@ -106,12 +106,25 @@ export default function ProdutoPage() {
     }, 500);
   };
 
-  const removerDoCarrinho = (prodId: number) => {
+  const removerDoCarrinho = async (prodId: number) => {
     const novo = carrinho.filter((i: any) => i.produto?.id !== prodId);
     localStorage.setItem("carrinho", JSON.stringify(novo));
     setCarrinho(novo);
     const item = novo.find((i: any) => i.produto?.id === produto?.id);
     setQtdCarrinho(item ? item.quantidade : 0);
+    const tk = localStorage.getItem("token");
+    if (tk) {
+      const me = await fetch(`${API}/auth/me`, {headers:{Authorization:`Bearer ${tk}`}});
+      if (me.ok) {
+        const u = await me.json();
+        const r = await fetch(`${API}/carrinho?session_id=user_${u.id}`, {headers:{Authorization:`Bearer ${tk}`}});
+        if (r.ok) {
+          const itens = await r.json();
+          const ex = itens.find((i:any) => i.product_id === prodId);
+          if (ex) await fetch(`${API}/carrinho/${ex.id}`, {method:"DELETE", headers:{Authorization:`Bearer ${tk}`}});
+        }
+      }
+    }
   };
 
   const totalCarrinho = carrinho.reduce((s: number, i: any) => s + i.produto.preco * i.quantidade, 0);
