@@ -268,7 +268,7 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto flex">
           {(["dashboard","pedidos","produtos",...(dadosUsuario?.is_superadmin ? ["configuracoes"] : [])] as const).map((a: any) => (
             <button key={a} onClick={() => setAba(a)}
-              className={`flex-1 py-3.5 text-xs font-black uppercase tracking-wide transition-all ${aba===a?"text-blue-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
+              className={`flex-1 py-4 text-sm font-black uppercase tracking-wider transition-all text-center ${aba===a?"text-blue-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
               {a==="dashboard"?"📊 Dashboard":a==="produtos"?"🛍️ Produtos":a==="configuracoes"?"⚙️ Config":
                 <span className="flex items-center gap-1">📦 Pedidos{totalPedidosAntes>0&&<span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-black">{totalPedidosAntes}</span>}</span>}
             </button>
