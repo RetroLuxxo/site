@@ -338,9 +338,7 @@ export default function Home() {
           --transparencia-cards: ${lojaTransparencia};
           --fonte-botao: ${lojaTamanhoFonteBotao}px;
           --cor-texto-botao: ${lojaCorTextoBotao};
-          --tamanho-fonte: ${lojaTamanhoFonte}px;
         }
-        * { font-size: var(--tamanho-fonte); }
         .btn-dinamico { background-color: var(--cor-botao) !important; font-size: var(--fonte-botao) !important; color: var(--cor-texto-botao) !important; }
         .btn-dinamico:hover { background-color: var(--cor-botao-hover) !important; }
         .glass-card { background: rgba(139,47,201,var(--transparencia-cards)) !important; }
@@ -424,7 +422,7 @@ export default function Home() {
 
       <div className="w-full px-4 sm:px-6 py-6 sm:py-8 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{lojaDesc.includes(" de ")?(lojaDesc.split(" de ")[0]+" de "):lojaDesc} {lojaDesc.includes(" de ")?<span className="text-purple-400">{lojaDesc.split(" de ")[1]}</span>:""}</h1>
+          <h1 className="font-black tracking-tight" style={{fontSize:lojaTamanhoFonte+"px"}}>{lojaDesc.includes(" de ")?(lojaDesc.split(" de ")[0]+" de "):lojaDesc} {lojaDesc.includes(" de ")?<span className="text-purple-400">{lojaDesc.split(" de ")[1]}</span>:""}</h1>
           <p className="text-gray-500 text-sm mt-0.5">{produtosFiltrados.length} produto{produtosFiltrados.length!==1?"s":""} disponível{produtosFiltrados.length!==1?"s":""}</p>
         </div>
         {busca&&<button onClick={()=>setBusca("")} className="text-sm text-purple-400 hover:text-blue-300 transition-all">✕ Limpar</button>}
