@@ -173,6 +173,32 @@ echo ""
 # Inserir configs iniciais no banco após subir
 echo -e "${YELLOW}Aguardando banco inicializar...${NC}"
 sleep 5
+
+# Migrations de colunas e tabelas novas
+docker exec ecommerce_db psql -U admin -d jc_games_db -c "
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT TRUE;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS cupom_id INTEGER;
+CREATE TABLE IF NOT EXISTS cupons (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR UNIQUE NOT NULL,
+    desconto_pct FLOAT DEFAULT 0,
+    desconto_fixo FLOAT DEFAULT 0,
+    limite_uso INTEGER DEFAULT 100,
+    usos INTEGER DEFAULT 0,
+    ativo BOOLEAN DEFAULT TRUE,
+    validade DATE NULL,
+    criado_em TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS cupom_usos (
+    id SERIAL PRIMARY KEY,
+    cupom_id INTEGER REFERENCES cupons(id),
+    usuario_id INTEGER REFERENCES usuarios(id),
+    pedido_id INTEGER,
+    usado_em VARCHAR DEFAULT '',
+    UNIQUE(cupom_id, usuario_id)
+);
+" 2>/dev/null || echo "⚠️  Erro nas migrations"
+
 docker exec ecommerce_db psql -U admin -d jc_games_db -c "
 INSERT INTO configuracoes (chave, valor, descricao) VALUES
 ('pagbank_token', '${PAGBANK_TOKEN}', 'Token do PagBank'),
@@ -197,7 +223,11 @@ INSERT INTO configuracoes (chave, valor, descricao) VALUES
 ('loja_tamanho_fonte_botao', '12', 'Tamanho fonte botões'),
 ('loja_tamanho_logo', '32', 'Tamanho logo'),
 ('loja_tamanho_nome_loja', '18', 'Tamanho nome loja'),
-('loja_fonte', 'Orbitron', 'Fonte Google Fonts')
+('loja_fonte', 'Orbitron', 'Fonte Google Fonts'),
+('loja_layout', 'default', 'Layout da loja: default ou banner'),
+('loja_banner_url', '', 'URL da imagem do banner'),
+('loja_banner_titulo', '', 'Título do banner'),
+('loja_banner_subtitulo', '', 'Subtítulo do banner')
 ON CONFLICT (chave) DO NOTHING;
 " 2>/dev/null || echo "⚠️  Banco ainda não pronto — rode make up primeiro"
 
