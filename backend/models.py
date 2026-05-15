@@ -17,7 +17,6 @@ class Endereco(Base):
     __tablename__ = "enderecos"
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
-    cupom_id = Column(Integer, nullable=True)
     cep = Column(String)
     logradouro = Column(String)
     numero = Column(String)
@@ -81,6 +80,7 @@ class Pedido(Base):
     status = Column(String, default="pendente")
     itens = Column(JSON)
     codigo_rastreio = Column(String, default="")
+    cupom_id = Column(Integer, nullable=True)
 
 class Configuracao(Base):
     __tablename__ = "configuracoes"
