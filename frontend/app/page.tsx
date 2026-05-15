@@ -22,6 +22,10 @@ export default function Home() {
   });
   const [carrinhoAberto, setCarrinhoAberto] = useState(false);
   const [checkoutAberto, setCheckoutAberto] = useState(false);
+  const [cupomCodigo, setCupomCodigo] = useState("");
+  const [cupomAplicado, setCupomAplicado] = useState<{id:number;codigo:string;desconto_pct:number;desconto_fixo:number}|null>(null);
+  const [cupomErro, setCupomErro] = useState("");
+  const [cupomOk, setCupomOk] = useState("");
   const [loginAberto, setLoginAberto] = useState(false);
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [abaPeril, setAbaPerfil] = useState<"dados"|"pedidos"|"rastreamento">("dados");
@@ -315,7 +319,8 @@ export default function Home() {
 
   const totalItens=carrinho.reduce((s,i)=>s+i.quantidade,0);
   const totalProdutos=carrinho.reduce((s,i)=>s+i.produto.preco*i.quantidade,0);
-  const totalFinal=totalProdutos+(freteSelecionado?.preco??0);
+  const descontoCupom = cupomAplicado ? (cupomAplicado.desconto_pct>0 ? totalProdutos*(cupomAplicado.desconto_pct/100) : cupomAplicado.desconto_fixo) : 0;
+  const totalFinal=totalProdutos+(freteSelecionado?.preco??0)-descontoCupom;
   const sBadge=(s:string)=>({pendente:"bg-amber-500/20 text-amber-300 border border-amber-500/40",cancelado:"bg-red-500/20 text-red-300 border border-red-500/40",enviado:"bg-blue-500/20 text-blue-300 border border-purple-500/40",pago:"bg-purple-500/20 text-purple-300 border border-purple-500/40",entregue:"bg-emerald-500/20 text-emerald-300 border border-green-500/40"}[s]||"bg-gray-500/20 text-gray-300 border border-gray-500/40");
   const sIcon=(s:string)=>({pendente:"⏳",cancelado:"❌",enviado:"🚚",pago:"💳",entregue:"✅"}[s]||"📦");
 
@@ -744,6 +749,41 @@ export default function Home() {
                   </div>
                 )}
               </div>
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-4 space-y-2">
+                <p className="text-xs text-gray-400 font-black">🎫 Cupom de Desconto</p>
+                {cupomAplicado ? (
+                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3">
+                    <div>
+                      <span className="font-black text-green-400 font-mono">{cupomAplicado.codigo}</span>
+                      <p className="text-xs text-green-400">
+                        {cupomAplicado.desconto_pct>0?`-${cupomAplicado.desconto_pct}%`:`-R$ ${cupomAplicado.desconto_fixo.toFixed(2)}`}
+                        {" = -R$ "}{descontoCupom.toLocaleString("pt-BR",{minimumFractionDigits:2})}
+                      </p>
+                    </div>
+                    <button onClick={()=>{setCupomAplicado(null);setCupomCodigo("");setCupomOk("");}} className="text-gray-500 hover:text-red-400 text-xs font-black transition-all">✕ Remover</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input value={cupomCodigo} onChange={e=>{setCupomCodigo(e.target.value.toUpperCase());setCupomErro("");}} placeholder="Digite o cupom" className="flex-1 bg-white/6 border border-white/12 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none"/>
+                    <button onClick={async()=>{
+                      if(!cupomCodigo){setCupomErro("Digite um código");return;}
+                      const r=await fetch(`${API}/cupons/validar`,{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({codigo:cupomCodigo})});
+                      if(r.ok){const d=await r.json();setCupomAplicado(d);setCupomOk("✅ Cupom aplicado!");setCupomErro("");}
+                      else{const e=await r.json();setCupomErro(e.detail);setCupomOk("");}
+                    }} className="bg-purple-700 hover:bg-purple-600 px-4 py-2.5 rounded-xl font-black text-sm transition-all whitespace-nowrap">
+                      Aplicar
+                    </button>
+                  </div>
+                )}
+                {cupomErro&&<p className="text-red-400 text-xs">{cupomErro}</p>}
+                {cupomOk&&<p className="text-green-400 text-xs">{cupomOk}</p>}
+              </div>
+              {descontoCupom>0&&(
+                <div className="flex justify-between text-sm text-green-400 font-black px-1">
+                  <span>Desconto cupom</span>
+                  <span>-R$ {descontoCupom.toLocaleString("pt-BR",{minimumFractionDigits:2})}</span>
+                </div>
+              )}
               <button onClick={finalizarPedido} disabled={!freteSelecionado||enviando} className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed py-4 rounded-xl font-black text-sm transition-all btn-press flex items-center justify-center gap-3">
                 {enviando?(<><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/><span>Processando...</span></>):formaPagamento==="pix"?"🏦 Pagar com PIX":"💳 Pagar com Cartão"}
               </button>
