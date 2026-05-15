@@ -43,6 +43,10 @@ export default function Home() {
   const [lojaCorNomeLoja, setLojaCorNomeLoja] = useState("#8B2FC9");
   const [lojaCorNomeLoja2, setLojaCorNomeLoja2] = useState("#ffffff");
   const [lojaFonte, setLojaFonte] = useState("Orbitron");
+  const [lojaLayout, setLojaLayout] = useState("default");
+  const [lojaBannerUrl, setLojaBannerUrl] = useState("");
+  const [lojaBannerTitulo, setLojaBannerTitulo] = useState("");
+  const [lojaBannerSubtitulo, setLojaBannerSubtitulo] = useState("");
   const [sincronizando, setSincronizando] = useState(false);
   const [menuMobile, setMenuMobile] = useState(false);
 
@@ -122,6 +126,10 @@ export default function Home() {
         if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
         if(cfg.loja_cor_nome_loja2) setLojaCorNomeLoja2(cfg.loja_cor_nome_loja2);
         if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
+        if(cfg.loja_layout) setLojaLayout(cfg.loja_layout);
+        if(cfg.loja_banner_url) setLojaBannerUrl(cfg.loja_banner_url);
+        if(cfg.loja_banner_titulo) setLojaBannerTitulo(cfg.loja_banner_titulo);
+        if(cfg.loja_banner_subtitulo) setLojaBannerSubtitulo(cfg.loja_banner_subtitulo);
         setConfigsCarregadas(true);
       }).catch(()=>{});
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
@@ -158,6 +166,10 @@ export default function Home() {
         if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
         if(cfg.loja_cor_nome_loja2) setLojaCorNomeLoja2(cfg.loja_cor_nome_loja2);
         if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
+        if(cfg.loja_layout) setLojaLayout(cfg.loja_layout);
+        if(cfg.loja_banner_url) setLojaBannerUrl(cfg.loja_banner_url);
+        if(cfg.loja_banner_titulo) setLojaBannerTitulo(cfg.loja_banner_titulo);
+        if(cfg.loja_banner_subtitulo) setLojaBannerSubtitulo(cfg.loja_banner_subtitulo);
       }).catch(()=>{});
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
@@ -417,6 +429,15 @@ export default function Home() {
       </div>
 
       <main className="w-full px-4 sm:px-6 pb-16">
+        {lojaLayout==="banner" && lojaBannerUrl && (
+          <div className="relative w-full rounded-2xl overflow-hidden mb-8" style={{height:"320px"}}>
+            <img src={lojaBannerUrl} alt="Banner" className="w-full h-full object-cover"/>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex flex-col justify-center px-8">
+              {lojaBannerTitulo && <h2 className="text-3xl sm:text-5xl font-black text-white mb-2">{lojaBannerTitulo}</h2>}
+              {lojaBannerSubtitulo && <p className="text-lg text-gray-200">{lojaBannerSubtitulo}</p>}
+            </div>
+          </div>
+        )}
         {loading?(
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {[...Array(10)].map((_,i)=><div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse"><div className="h-40 bg-white/5"/><div className="p-3 space-y-2"><div className="h-3 bg-white/5 rounded w-3/4"/><div className="h-5 bg-white/5 rounded w-1/2"/></div></div>)}
