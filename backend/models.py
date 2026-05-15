@@ -17,6 +17,7 @@ class Endereco(Base):
     __tablename__ = "enderecos"
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    cupom_id = Column(Integer, nullable=True)
     cep = Column(String)
     logradouro = Column(String)
     numero = Column(String)
