@@ -434,7 +434,7 @@ export default function Home() {
       </div>
 
       <main className="w-full px-4 sm:px-6 pb-16">
-        {lojaLayout==="banner" && lojaBannerUrl && (
+        {lojaLayout==="banner" && lojaBannerUrl && !busca && (
           <div className="relative w-full rounded-2xl overflow-hidden mb-8 h-[220px] sm:h-[480px]">
             <img src={lojaBannerUrl} alt="Banner" className="w-full h-full object-cover"/>
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex flex-col justify-center px-8">
