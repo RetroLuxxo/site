@@ -291,6 +291,15 @@ def criar_pedido(pedido: schemas.PedidoCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_pedido)
 
+    # Registra uso do cupom
+    if hasattr(pedido, "cupom_id") and pedido.cupom_id:
+        import datetime
+        cupom = db.query(models.Cupom).filter(models.Cupom.id == pedido.cupom_id).first()
+        if cupom:
+            cupom.usos += 1
+            uso = models.CupomUso(cupom_id=cupom.id, usuario_id=pedido.usuario_id, usado_em=str(datetime.datetime.now()))
+            db.add(uso)
+
     # Envia email de confirmação
     itens_html = "".join([
         f"<tr><td style='padding:8px;border-bottom:1px solid #333'>Produto #{i['product_id']}</td><td style='padding:8px;border-bottom:1px solid #333'>{i['quantidade']}x</td><td style='padding:8px;border-bottom:1px solid #333'>R$ {i['preco_unitario']:,.2f}</td></tr>"

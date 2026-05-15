@@ -296,7 +296,7 @@ export default function Home() {
     setEnviando(true); setErroCheckout("");
     try {
       const hdrs:any={"Content-Type":"application/json"}; if(token) hdrs["Authorization"]=`Bearer ${token}`;
-      const r=await fetch(`${API}/pedidos`,{method:"POST",headers:hdrs,body:JSON.stringify({...form,cep,endereco:usarEnderecoSalvo?.logradouro||endereco.logradouro,bairro:usarEnderecoSalvo?.bairro||endereco.bairro,cidade:usarEnderecoSalvo?.cidade||endereco.localidade,estado:usarEnderecoSalvo?.estado||endereco.uf,frete_nome:freteSelecionado.nome,frete_preco:freteSelecionado.preco,frete_prazo:freteSelecionado.prazo,usuario_id:usuario?.id??null,itens:carrinho.map(i=>({product_id:i.produto.id,quantidade:i.quantidade,preco_unitario:i.produto.preco}))})});
+      const r=await fetch(`${API}/pedidos`,{method:"POST",headers:hdrs,body:JSON.stringify({...form,cep,endereco:usarEnderecoSalvo?.logradouro||endereco.logradouro,bairro:usarEnderecoSalvo?.bairro||endereco.bairro,cidade:usarEnderecoSalvo?.cidade||endereco.localidade,estado:usarEnderecoSalvo?.estado||endereco.uf,frete_nome:freteSelecionado.nome,frete_preco:freteSelecionado.preco,frete_prazo:freteSelecionado.prazo,usuario_id:usuario?.id??null,cupom_id:cupomAplicado?.id??null,itens:carrinho.map(i=>({product_id:i.produto.id,quantidade:i.quantidade,preco_unitario:i.produto.preco}))})});
       const pedido=await r.json();
       if(r.ok){
         if(usuario){const idb:CartItemDB[]=await(await fetch(`${API}/carrinho?session_id=${sessionId(usuario)}`,{headers:authHeaders()})).json();for(const it of idb)await fetch(`${API}/carrinho/${it.id}`,{method:"DELETE",headers:authHeaders()});}

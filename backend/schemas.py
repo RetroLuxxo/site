@@ -191,6 +191,7 @@ class PedidoCreate(BaseModel):
     frete_prazo: int
     itens: List[ItemPedido]
     usuario_id: Optional[int] = None
+    cupom_id: Optional[int] = None
 
 class PedidoStatusUpdate(BaseModel):
     status: str
