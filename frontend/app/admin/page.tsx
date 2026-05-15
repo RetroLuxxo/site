@@ -434,8 +434,7 @@ export default function Admin() {
               {k:"loja_descricao",label:"Descrição",tipo:"text"},
               {k:"loja_layout",label:"Layout",tipo:"layout"},
               {k:"loja_banner_url",label:"Imagem do Banner",tipo:"logo"},
-              {k:"loja_banner_titulo",label:"Título do Banner",tipo:"text"},
-              {k:"loja_banner_subtitulo",label:"Subtítulo do Banner",tipo:"text"},
+
             ]},
             {titulo:"🎨 Visual", chaves:[
               {k:"loja_cor_primaria",label:"Cor Primária",tipo:"color"},
