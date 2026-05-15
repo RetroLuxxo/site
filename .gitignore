@@ -30,3 +30,6 @@ frontend/.next/
 *.csv
 page.tsx
 globals.css
+*.png
+*.jpg
+*.jpeg

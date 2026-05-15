@@ -433,7 +433,7 @@ export default function Admin() {
               {k:"loja_nome",label:"Nome da Loja",tipo:"text"},
               {k:"loja_descricao",label:"Descrição",tipo:"text"},
               {k:"loja_layout",label:"Layout",tipo:"layout"},
-              {k:"loja_banner_url",label:"URL do Banner",tipo:"logo"},
+              {k:"loja_banner_url",label:"Imagem do Banner",tipo:"logo"},
               {k:"loja_banner_titulo",label:"Título do Banner",tipo:"text"},
               {k:"loja_banner_subtitulo",label:"Subtítulo do Banner",tipo:"text"},
             ]},
