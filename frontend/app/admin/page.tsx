@@ -432,6 +432,10 @@ export default function Admin() {
               {k:"loja_fonte",label:"Fonte Google Fonts",tipo:"fonte"},
               {k:"loja_nome",label:"Nome da Loja",tipo:"text"},
               {k:"loja_descricao",label:"Descrição",tipo:"text"},
+              {k:"loja_layout",label:"Layout",tipo:"layout"},
+              {k:"loja_banner_url",label:"URL do Banner",tipo:"logo"},
+              {k:"loja_banner_titulo",label:"Título do Banner",tipo:"text"},
+              {k:"loja_banner_subtitulo",label:"Subtítulo do Banner",tipo:"text"},
             ]},
             {titulo:"🎨 Visual", chaves:[
               {k:"loja_cor_primaria",label:"Cor Primária",tipo:"color"},
@@ -464,6 +468,15 @@ export default function Admin() {
                     <div className="flex gap-3 items-center">
                       <input type="color" value={configs[k]?.valor||"#8B2FC9"} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-12 h-12 rounded-xl cursor-pointer border-0 bg-transparent"/>
                       <input type="text" value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="flex-1 bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder="#8B2FC9"/>
+                    </div>
+                  ) : tipo==="layout" ? (
+                    <div className="flex gap-3">
+                      {["default","banner"].map(l=>(
+                        <button key={l} type="button" onClick={()=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:l}}))}
+                          className={`flex-1 py-3 rounded-xl font-black text-sm border transition-all ${configs[k]?.valor===l?"bg-purple-700 border-purple-500 text-white":"bg-white/5 border-white/10 text-gray-400 hover:border-white/20"}`}>
+                          {l==="default"?"📦 Default":"🖼️ Banner"}
+                        </button>
+                      ))}
                     </div>
                   ) : tipo==="fonte" ? (
                     <FontePicker valor={configs[k]?.valor||"Orbitron"} onChange={v=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:v}}))}/>
