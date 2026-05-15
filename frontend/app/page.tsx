@@ -122,6 +122,7 @@ export default function Home() {
         if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
         if(cfg.loja_cor_nome_loja2) setLojaCorNomeLoja2(cfg.loja_cor_nome_loja2);
         if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
+        setConfigsCarregadas(true);
       }).catch(()=>{});
     fetch(`${API}/produtos`).then(r => r.json()).then(data => {
       const p = data.find((p: Produto) => p.id === parseInt(addId));
