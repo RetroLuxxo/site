@@ -87,3 +87,22 @@ class Configuracao(Base):
     chave = Column(String, unique=True, index=True)
     valor = Column(Text, default="")
     descricao = Column(String, default="")
+
+class Cupom(Base):
+    __tablename__ = "cupons"
+    id = Column(Integer, primary_key=True, index=True)
+    codigo = Column(String, unique=True, index=True)
+    desconto_pct = Column(Float, default=0)
+    desconto_fixo = Column(Float, default=0)
+    limite_uso = Column(Integer, default=100)
+    usos = Column(Integer, default=0)
+    ativo = Column(Boolean, default=True)
+    validade = Column(String, nullable=True)
+
+class CupomUso(Base):
+    __tablename__ = "cupom_usos"
+    id = Column(Integer, primary_key=True, index=True)
+    cupom_id = Column(Integer)
+    usuario_id = Column(Integer)
+    pedido_id = Column(Integer, nullable=True)
+    usado_em = Column(String, default="")

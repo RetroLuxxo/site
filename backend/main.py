@@ -667,3 +667,67 @@ def tornar_admin(dados: dict, usuario = Depends(get_usuario_atual), db: Session 
         u.is_superadmin = False
     db.commit()
     return {"ok": True, "email": email, "nivel": nivel}
+
+# ============================================================
+# CUPONS
+# ============================================================
+@app.post("/cupons/validar")
+def validar_cupom(dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Login necessário")
+    codigo = dados.get("codigo", "").strip().upper()
+    cupom = db.query(models.Cupom).filter(models.Cupom.codigo == codigo, models.Cupom.ativo == True).first()
+    if not cupom:
+        raise HTTPException(status_code=404, detail="Cupom inválido ou expirado")
+    if cupom.limite_uso > 0 and cupom.usos >= cupom.limite_uso:
+        raise HTTPException(status_code=400, detail="Cupom esgotado")
+    uso = db.query(models.CupomUso).filter(models.CupomUso.cupom_id == cupom.id, models.CupomUso.usuario_id == usuario.id).first()
+    if uso:
+        raise HTTPException(status_code=400, detail="Você já utilizou este cupom")
+    return {"id": cupom.id, "codigo": cupom.codigo, "desconto_pct": cupom.desconto_pct, "desconto_fixo": cupom.desconto_fixo}
+
+@app.get("/admin/cupons")
+def listar_cupons(usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    return db.query(models.Cupom).all()
+
+@app.post("/admin/cupons")
+def criar_cupom(dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    cupom = models.Cupom(
+        codigo=dados.get("codigo","").upper(),
+        desconto_pct=float(dados.get("desconto_pct", 0)),
+        desconto_fixo=float(dados.get("desconto_fixo", 0)),
+        limite_uso=int(dados.get("limite_uso", 100)),
+        ativo=True
+    )
+    db.add(cupom)
+    db.commit()
+    db.refresh(cupom)
+    return cupom
+
+@app.put("/admin/cupons/{cupom_id}")
+def atualizar_cupom(cupom_id: int, dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    cupom = db.query(models.Cupom).filter(models.Cupom.id == cupom_id).first()
+    if not cupom:
+        raise HTTPException(status_code=404, detail="Cupom não encontrado")
+    cupom.ativo = dados.get("ativo", cupom.ativo)
+    cupom.limite_uso = dados.get("limite_uso", cupom.limite_uso)
+    cupom.desconto_pct = dados.get("desconto_pct", cupom.desconto_pct)
+    cupom.desconto_fixo = dados.get("desconto_fixo", cupom.desconto_fixo)
+    db.commit()
+    return cupom
+
+@app.delete("/admin/cupons/{cupom_id}")
+def deletar_cupom(cupom_id: int, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    if not usuario or not usuario.is_admin:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    cupom = db.query(models.Cupom).filter(models.Cupom.id == cupom_id).first()
+    if cupom:
+        db.delete(cupom)
+        db.commit()
+    return {"ok": True}

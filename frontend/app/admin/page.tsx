@@ -7,6 +7,7 @@ type Pedido = { id: number; nome: string; email: string; telefone: string; statu
 type Produto = { id: number; nome: string; preco: number; estoque: number; imagem_url: string; descricao: string; ativo?: boolean; };
 type Dashboard = { total_pedidos: number; pendentes: number; enviados: number; entregues: number; cancelados: number; total_faturado: number; total_usuarios: number; total_produtos: number; };
 type UsuarioAdmin = { id: number; email: string; nome: string; is_admin: boolean; is_superadmin: boolean; };
+type Cupom = { id: number; codigo: string; desconto_pct: number; desconto_fixo: number; limite_uso: number; usos: number; ativo: boolean; };
 
 const FONTES = ["Orbitron","Rajdhani","Exo 2","Audiowide","Quantico","Righteous","Press Start 2P","Russo One","Aldrich","Oxanium","Chakra Petch","Share Tech Mono","VT323","Silkscreen"];
 
@@ -39,7 +40,7 @@ function FontePicker({valor, onChange}: {valor:string, onChange:(v:string)=>void
 
 export default function Admin() {
   const [token, setToken] = useState("");
-  const [aba, setAba] = useState<"dashboard"|"pedidos"|"produtos"|"configuracoes">("dashboard");
+  const [aba, setAba] = useState<"dashboard"|"pedidos"|"produtos"|"cupons"|"configuracoes">("dashboard");
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -55,6 +56,8 @@ export default function Admin() {
   const [importando, setImportando] = useState(false);
   const [selecionados, setSelecionados] = useState<number[]>([]);
   const [dadosUsuario, setDadosUsuario] = useState<UsuarioAdmin|null>(null);
+  const [cupons, setCupons] = useState<Cupom[]>([]);
+  const [novoCupom, setNovoCupom] = useState({codigo:"",desconto_pct:0,desconto_fixo:0,limite_uso:100});
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [enviandoStatus, setEnviandoStatus] = useState(false);
   const [novoProduto, setNovoProduto] = useState({ nome: "", descricao: "", preco: "", imagem_url: "", estoque: "", peso_kg: "0.5", comprimento_cm: "15", largura_cm: "15", altura_cm: "15" });
@@ -136,6 +139,8 @@ export default function Admin() {
       const me = await fetch(`${API}/auth/me`, { headers: H(tk) });
       if (me.ok) setDadosUsuario(await me.json());
       setDashboard(dash); setPedidos(peds); setProdutos(prods); setConfigs(cfgs);
+      const cups = await fetch(`${API}/admin/cupons`, { headers: H(tk) }).then(r => r.ok ? r.json() : []);
+      setCupons(cups);
     } finally { setLoading(false); }
   };
 
@@ -266,10 +271,10 @@ export default function Admin() {
       {/* ABAS */}
       <div className="glass border-b border-white/5">
         <div className="max-w-7xl mx-auto flex">
-          {(["dashboard","pedidos","produtos",...(dadosUsuario?.is_superadmin ? ["configuracoes"] : [])] as const).map((a: any) => (
+          {(["dashboard","pedidos","produtos","cupons",...(dadosUsuario?.is_superadmin ? ["configuracoes"] : [])] as const).map((a: any) => (
             <button key={a} onClick={() => setAba(a)}
               className={`flex-1 py-4 text-sm font-black uppercase tracking-wider transition-all text-center ${aba===a?"text-blue-400 border-b-2 border-blue-400":"text-gray-500 hover:text-gray-300"}`}>
-              {a==="dashboard"?"📊 Dashboard":a==="produtos"?"🛍️ Produtos":a==="configuracoes"?"⚙️ Config":
+              {a==="dashboard"?"📊 Dashboard":a==="produtos"?"🛍️ Produtos":a==="configuracoes"?"⚙️ Config":a==="cupons"?"🎫 Cupons":
                 <span className="flex items-center gap-1">📦 Pedidos{totalPedidosAntes>0&&<span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-black">{totalPedidosAntes}</span>}</span>}
             </button>
           ))}
@@ -406,6 +411,72 @@ export default function Admin() {
         )}
 
         {/* PRODUTOS */}
+        {aba==="cupons" && (
+          <div className="space-y-4 max-w-2xl">
+            {msg&&<div className="bg-white/5 border border-white/8 rounded-xl p-3 text-sm">{msg}</div>}
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-3">
+              <p className="font-black text-sm text-purple-400">🎫 Novo Cupom</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Código</p>
+                  <input value={novoCupom.codigo} onChange={e=>setNovoCupom({...novoCupom,codigo:e.target.value.toUpperCase()})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white outline-none" placeholder="EX: DESCONTO10"/>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Limite de Uso</p>
+                  <input type="number" value={novoCupom.limite_uso} onChange={e=>setNovoCupom({...novoCupom,limite_uso:parseInt(e.target.value)})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white outline-none"/>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Desconto % (ex: 10 = 10%)</p>
+                  <input type="number" value={novoCupom.desconto_pct} onChange={e=>setNovoCupom({...novoCupom,desconto_pct:parseFloat(e.target.value)})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white outline-none"/>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Desconto Fixo R$</p>
+                  <input type="number" value={novoCupom.desconto_fixo} onChange={e=>setNovoCupom({...novoCupom,desconto_fixo:parseFloat(e.target.value)})} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white outline-none"/>
+                </div>
+              </div>
+              <button onClick={async()=>{
+                if(!novoCupom.codigo){showMsg("❌ Digite um código!");return;}
+                const r=await fetch(`${API}/admin/cupons`,{method:"POST",headers:H(token),body:JSON.stringify(novoCupom)});
+                if(r.ok){const d=await r.json();setCupons(prev=>[...prev,d]);setNovoCupom({codigo:"",desconto_pct:0,desconto_fixo:0,limite_uso:100});showMsg("✅ Cupom criado!");}
+                else showMsg("❌ Erro ao criar cupom");
+              }} className="w-full bg-purple-700 hover:bg-purple-600 py-3 rounded-xl font-black text-sm transition-all">
+                + Criar Cupom
+              </button>
+            </div>
+            <div className="space-y-2">
+              {cupons.length===0&&<p className="text-gray-500 text-sm text-center py-4">Nenhum cupom cadastrado</p>}
+              {cupons.map(c=>(
+                <div key={c.id} className="bg-white/3 border border-white/8 rounded-2xl p-4 flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-purple-400 font-mono">{c.codigo}</span>
+                      {!c.ativo&&<span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Inativo</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {c.desconto_pct>0?`${c.desconto_pct}% de desconto`:``}
+                      {c.desconto_fixo>0?` R$ ${c.desconto_fixo.toFixed(2)} de desconto`:``}
+                      {" · "}{c.usos}/{c.limite_uso} usos
+                    </p>
+                  </div>
+                  <button onClick={async()=>{
+                    const r=await fetch(`${API}/admin/cupons/${c.id}`,{method:"PUT",headers:H(token),body:JSON.stringify({ativo:!c.ativo})});
+                    if(r.ok) setCupons(prev=>prev.map(x=>x.id===c.id?{...x,ativo:!c.ativo}:x));
+                  }} className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${c.ativo?"bg-yellow-600 hover:bg-yellow-500":"bg-green-600 hover:bg-green-500"} text-white`}>
+                    {c.ativo?"Desativar":"Ativar"}
+                  </button>
+                  <button onClick={async()=>{
+                    if(!confirm("Remover cupom?"))return;
+                    const r=await fetch(`${API}/admin/cupons/${c.id}`,{method:"DELETE",headers:H(token)});
+                    if(r.ok) setCupons(prev=>prev.filter(x=>x.id!==c.id));
+                  }} className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all">
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {aba==="configuracoes" && (
         <div className="space-y-6 max-w-2xl">
           {msg&&<div className="bg-white/5 border border-white/8 rounded-xl p-3 text-sm">{msg}</div>}
