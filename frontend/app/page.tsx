@@ -27,9 +27,9 @@ export default function Home() {
   const [abaPeril, setAbaPerfil] = useState<"dados"|"pedidos"|"rastreamento">("dados");
   const [loading, setLoading] = useState(true);
   const [configsCarregadas, setConfigsCarregadas] = useState(false);
-  const [lojaNome, setLojaNome] = useState("JC GAMES STORE");
-  const [lojaDesc, setLojaDesc] = useState("Hardware de Elite");
-  const [lojaLogo, setLojaLogo] = useState("/favicon.png");
+  const [lojaNome, setLojaNome] = useState("");
+  const [lojaDesc, setLojaDesc] = useState("");
+  const [lojaLogo, setLojaLogo] = useState("");
   const [lojaCorPrimaria, setLojaCorPrimaria] = useState("#8B2FC9");
   const [lojaCorFundo, setLojaCorFundo] = useState("#0a0010");
   const [lojaCorBotao, setLojaCorBotao] = useState("#8B2FC9");
