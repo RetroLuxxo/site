@@ -360,7 +360,7 @@ export default function Home() {
 
       {/* HEADER */}
       <header className="glass-header sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
+        <div className="w-full px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
             <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
             <span className="font-black tracking-tight hidden sm:block" style={{fontSize:lojaTamanhoNomeLoja+"px"}}>
@@ -406,7 +406,7 @@ export default function Home() {
         )}
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8 flex items-center justify-between flex-wrap gap-3">
+      <div className="w-full px-4 sm:px-6 py-6 sm:py-8 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{lojaDesc.includes(" de ")?(lojaDesc.split(" de ")[0]+" de "):lojaDesc} {lojaDesc.includes(" de ")?<span className="text-purple-400">{lojaDesc.split(" de ")[1]}</span>:""}</h1>
           <p className="text-gray-500 text-sm mt-0.5">{produtosFiltrados.length} produto{produtosFiltrados.length!==1?"s":""} disponível{produtosFiltrados.length!==1?"s":""}</p>
@@ -414,7 +414,7 @@ export default function Home() {
         {busca&&<button onClick={()=>setBusca("")} className="text-sm text-purple-400 hover:text-blue-300 transition-all">✕ Limpar</button>}
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 pb-16">
+      <main className="w-full px-4 sm:px-6 pb-16">
         {loading?(
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {[...Array(10)].map((_,i)=><div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse"><div className="h-40 bg-white/5"/><div className="p-3 space-y-2"><div className="h-3 bg-white/5 rounded w-3/4"/><div className="h-5 bg-white/5 rounded w-1/2"/></div></div>)}
