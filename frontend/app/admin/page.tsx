@@ -129,7 +129,7 @@ export default function Admin() {
       const [dash, peds, prods, cfgs] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers: H(tk) }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/pedidos`, { headers: H(tk) }).then(r => r.ok ? r.json() : []),
-        fetch(`${API}/produtos`).then(r => r.json()),
+        fetch(`${API}/admin/produtos`, { headers: H(tk) }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/admin/configuracoes`, { headers: H(tk) }).then(r => r.ok ? r.json() : {}),
       ]);
       if (!dash) { window.location.href = "/"; return; }
@@ -625,7 +625,7 @@ export default function Admin() {
                       <input type="checkbox" checked={selecionados.includes(p.id)} onChange={e=>setSelecionados(prev=>e.target.checked?[...prev,p.id]:prev.filter(i=>i!==p.id))} className="w-4 h-4 accent-purple-500 flex-shrink-0"/>
                       <img src={p.imagem_url} alt={p.nome} className="w-16 h-16 object-contain rounded-xl bg-black/40 flex-shrink-0 p-1"/>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-gray-200 line-clamp-2 leading-tight">{p.nome}</p>
+                        <p className="font-bold text-sm text-gray-200 line-clamp-2 leading-tight">{p.nome} {p.ativo===false&&<span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full font-black">⏸️</span>}</p>
                         <p className="text-emerald-400 font-black text-sm">R$ {p.preco.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
                         <p className={`text-xs font-bold ${p.estoque>0?"text-blue-400":"text-red-400"}`}>Estoque: {p.estoque} un.</p>
                       </div>

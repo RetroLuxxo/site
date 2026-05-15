@@ -444,6 +444,10 @@ def admin_dashboard(db: Session = Depends(get_db), admin = Depends(get_admin)):
         "total_produtos": total_produtos,
     }
 
+@app.get("/admin/produtos")
+def admin_listar_produtos(db: Session = Depends(get_db), admin = Depends(get_admin)):
+    return db.query(models.Produto).all()
+
 @app.put("/admin/produtos/{produto_id}", response_model=schemas.Produto)
 def admin_atualizar_produto(produto_id: int, dados: schemas.ProdutoUpdate, db: Session = Depends(get_db), admin = Depends(get_admin)):
     produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
