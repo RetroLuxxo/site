@@ -364,8 +364,8 @@ export default function Home() {
       <header className="glass-header sticky top-0 z-50">
         <div className="w-full px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
-            <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
-            <span className="font-black tracking-tight hidden sm:block" style={{fontSize:lojaTamanhoNomeLoja+"px"}}>
+            <img src={lojaLogo} alt={lojaNome} className={`object-contain rounded-lg transition-opacity duration-300 ${configsCarregadas?"opacity-100":"opacity-0"}`} style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
+            <span className={`font-black tracking-tight hidden sm:block transition-opacity duration-300 ${configsCarregadas?"opacity-100":"opacity-0"}`} style={{fontSize:lojaTamanhoNomeLoja+"px"}}>
               <span style={{color:lojaCorNomeLoja}}>{lojaNome.split(" ").slice(0,-1).join(" ")||lojaNome}</span>
               {lojaNome.split(" ").length>1&&<span style={{color:lojaCorNomeLoja2}}> {lojaNome.split(" ").slice(-1)[0]}</span>}
             </span>
