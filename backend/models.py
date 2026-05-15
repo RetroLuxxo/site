@@ -35,6 +35,7 @@ class Produto(Base):
     imagem_url = Column(String)
     fotos = Column(JSON, default=list)
     estoque = Column(Integer, default=0)
+    ativo = Column(Boolean, default=True)
     peso_kg = Column(Float, default=0.5)
     comprimento_cm = Column(Integer, default=15)
     largura_cm = Column(Integer, default=15)
