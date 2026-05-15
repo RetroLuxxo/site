@@ -338,7 +338,9 @@ export default function Home() {
           --transparencia-cards: ${lojaTransparencia};
           --fonte-botao: ${lojaTamanhoFonteBotao}px;
           --cor-texto-botao: ${lojaCorTextoBotao};
+          --tamanho-fonte: ${lojaTamanhoFonte}px;
         }
+        * { font-size: var(--tamanho-fonte); }
         .btn-dinamico { background-color: var(--cor-botao) !important; font-size: var(--fonte-botao) !important; color: var(--cor-texto-botao) !important; }
         .btn-dinamico:hover { background-color: var(--cor-botao-hover) !important; }
         .glass-card { background: rgba(139,47,201,var(--transparencia-cards)) !important; }
