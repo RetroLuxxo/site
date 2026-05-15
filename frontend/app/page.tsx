@@ -26,6 +26,7 @@ export default function Home() {
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [abaPeril, setAbaPerfil] = useState<"dados"|"pedidos"|"rastreamento">("dados");
   const [loading, setLoading] = useState(true);
+  const [configsCarregadas, setConfigsCarregadas] = useState(false);
   const [lojaNome, setLojaNome] = useState("JC GAMES STORE");
   const [lojaDesc, setLojaDesc] = useState("Hardware de Elite");
   const [lojaLogo, setLojaLogo] = useState("/favicon.png");
@@ -359,7 +360,7 @@ export default function Home() {
       `}</style>
 
       {/* HEADER */}
-      <header className="glass-header sticky top-0 z-50">
+      <header className={`glass-header sticky top-0 z-50 transition-opacity duration-300 ${configsCarregadas?"opacity-100":"opacity-0"}`}>
         <div className="w-full px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
             <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
