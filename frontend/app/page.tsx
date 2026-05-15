@@ -361,7 +361,7 @@ export default function Home() {
       `}</style>
 
       {/* HEADER */}
-      <header className={`glass-header sticky top-0 z-50 transition-opacity duration-300 ${configsCarregadas?"opacity-100":"opacity-0"}`}>
+      <header className="glass-header sticky top-0 z-50">
         <div className="w-full px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
             <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
