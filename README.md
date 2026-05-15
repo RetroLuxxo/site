@@ -31,9 +31,11 @@ Instale no PC antes de começar:
 
 ### Instalar Docker no Ubuntu/Debian:
 ```bash
-sudo apt update
-sudo apt install -y docker.io docker-compose-plugin
+curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker $USER
+newgrp docker
+sudo systemctl start docker
+sudo systemctl enable docker
 # Reinicie o terminal após este comando
 ```
 
@@ -112,7 +114,6 @@ make up
 
 ### 6. Configure o usuário admin
 
-Acesse o Adminer em `http://localhost:8180` com:
 - **Sistema**: PostgreSQL
 - **Servidor**: db
 - **Usuário**: admin
@@ -121,7 +122,7 @@ Acesse o Adminer em `http://localhost:8180` com:
 
 Execute este SQL:
 ```sql
-UPDATE usuarios SET is_admin = TRUE WHERE email = 'seu@email.com';
+make tornar-superadmin admin=seu@email.com
 ```
 
 ---
@@ -291,8 +292,14 @@ site/
 ### Passos
 ```bash
 # 1. Instala Docker
-sudo apt update && sudo apt install -y docker.io docker-compose-plugin
+curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker $USER
+newgrp docker
+sudo systemctl start docker
+sudo systemctl enable docker
+newgrp docker
+sudo systemctl start docker
+sudo systemctl enable docker
 
 # 2. Clona o projeto
 git clone https://github.com/RetroLuxxo/site.git
