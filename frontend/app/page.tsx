@@ -300,7 +300,7 @@ export default function Home() {
       const pedido=await r.json();
       if(r.ok){
         if(usuario){const idb:CartItemDB[]=await(await fetch(`${API}/carrinho?session_id=${sessionId(usuario)}`,{headers:authHeaders()})).json();for(const it of idb)await fetch(`${API}/carrinho/${it.id}`,{method:"DELETE",headers:authHeaders()});}
-        setPedidoFinalizado(pedido.id); setProdutos(prev=>prev.map(p=>{const it=carrinho.find(i=>i.produto.id===p.id);return it?{...p,estoque:Math.max(0,p.estoque-it.quantidade)}:p;}));
+        setPedidoFinalizado(pedido.id); setProdutos(prev=>prev.map(p=>{const it=carrinho.find(i=>i.produto.id===p.id);return it?{...p,estoque:Math.max(0,p.estoque-it.quantidade)}:p;})); setCupomAplicado(null); setCupomCodigo(""); setCupomErro(""); setCupomOk("");
         setCarrinho([]); setCheckoutAberto(false); setCarrinhoAberto(false);
         try {
           if(formaPagamento==="pix"){
