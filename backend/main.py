@@ -20,6 +20,7 @@ def run_migrations():
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS is_superadmin BOOLEAN DEFAULT FALSE",
                 "ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS descricao VARCHAR DEFAULT ''",
                 "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS fotos JSON DEFAULT '[]'",
+                "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT TRUE",
             ]
             for sql in migrations:
                 try:
@@ -186,7 +187,7 @@ def salvar_endereco(endereco: schemas.EnderecoCreate, usuario = Depends(get_usua
 # --- PRODUTOS ---
 @app.get("/produtos", response_model=List[schemas.Produto])
 def listar_produtos(db: Session = Depends(get_db)):
-    return db.query(models.Produto).all()
+    return db.query(models.Produto).filter(models.Produto.ativo == True).all()
 
 @app.post("/produtos", response_model=schemas.Produto)
 def criar_produto(produto: schemas.ProdutoCreate, db: Session = Depends(get_db)):
@@ -453,6 +454,15 @@ def admin_atualizar_produto(produto_id: int, dados: schemas.ProdutoUpdate, db: S
     db.commit()
     db.refresh(produto)
     return produto
+
+@app.put("/admin/produtos/{produto_id}/pausar")
+def pausar_produto(produto_id: int, db: Session = Depends(get_db), admin = Depends(get_admin)):
+    produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
+    if not produto:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    produto.ativo = not produto.ativo
+    db.commit()
+    return {"ativo": produto.ativo}
 
 @app.delete("/admin/produtos/{produto_id}")
 def admin_deletar_produto(produto_id: int, db: Session = Depends(get_db), admin = Depends(get_admin)):

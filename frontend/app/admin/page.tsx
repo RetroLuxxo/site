@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? (window.location.port === "3000" ? window.location.protocol + "//" + window.location.hostname + ":8000" : window.location.protocol + "//" + window.location.host) : "http://localhost:8000");
 
 type Pedido = { id: number; nome: string; email: string; telefone: string; status: string; total: number; frete_nome: string; cidade: string; estado: string; itens: any[]; codigo_rastreio?: string; };
-type Produto = { id: number; nome: string; preco: number; estoque: number; imagem_url: string; descricao: string; };
+type Produto = { id: number; nome: string; preco: number; estoque: number; imagem_url: string; descricao: string; ativo?: boolean; };
 type Dashboard = { total_pedidos: number; pendentes: number; enviados: number; entregues: number; cancelados: number; total_faturado: number; total_usuarios: number; total_produtos: number; };
 type UsuarioAdmin = { id: number; email: string; nome: string; is_admin: boolean; is_superadmin: boolean; };
 
@@ -631,6 +631,12 @@ export default function Admin() {
                       </div>
                       <div className="flex flex-col gap-2 flex-shrink-0">
                         <button onClick={() => setProdutoEditando(p)} className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-xs font-black btn-press">Editar</button>
+                        <button onClick={async()=>{
+                          const r=await fetch(`${API}/admin/produtos/${p.id}/pausar`,{method:"PUT",headers:H(token)});
+                          if(r.ok){const d=await r.json();setProdutos(prev=>prev.map(x=>x.id===p.id?{...x,ativo:d.ativo}:x));showMsg(d.ativo?"✅ Produto ativado!":"⏸️ Produto pausado!");}
+                        }} className={`px-3 py-1.5 rounded-lg text-xs font-black btn-press transition-all ${p.ativo!==false?"bg-yellow-600 hover:bg-yellow-500 text-white":"bg-green-600 hover:bg-green-500 text-white"}`}>
+                          {p.ativo!==false?"⏸️ Pausar":"▶️ Ativar"}
+                        </button>
                         <button onClick={() => deletarProduto(p.id, p.nome)} className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs font-black btn-press text-white">Remover</button>
                       </div>
                     </div>
