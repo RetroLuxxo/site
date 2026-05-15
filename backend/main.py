@@ -682,6 +682,7 @@ def tornar_admin(dados: dict, usuario = Depends(get_usuario_atual), db: Session 
 # ============================================================
 @app.post("/cupons/validar")
 def validar_cupom(dados: dict, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    import datetime
     if not usuario:
         raise HTTPException(status_code=401, detail="Login necessário")
     codigo = dados.get("codigo", "").strip().upper()
@@ -693,6 +694,11 @@ def validar_cupom(dados: dict, usuario = Depends(get_usuario_atual), db: Session
     uso = db.query(models.CupomUso).filter(models.CupomUso.cupom_id == cupom.id, models.CupomUso.usuario_id == usuario.id).first()
     if uso:
         raise HTTPException(status_code=400, detail="Você já utilizou este cupom")
+    # Registra uso imediatamente
+    cupom.usos += 1
+    novo_uso = models.CupomUso(cupom_id=cupom.id, usuario_id=usuario.id, usado_em=str(datetime.datetime.now()))
+    db.add(novo_uso)
+    db.commit()
     return {"id": cupom.id, "codigo": cupom.codigo, "desconto_pct": cupom.desconto_pct, "desconto_fixo": cupom.desconto_fixo}
 
 @app.get("/admin/cupons")
