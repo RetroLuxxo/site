@@ -453,16 +453,16 @@ export default function Admin() {
               {secao.chaves.map(({k,label,tipo})=>(
                 <div key={k}>
                   <p className="text-xs text-gray-500 mb-1">{label}</p>
-                  {k==="loja_logo" ? (
+                  {tipo==="logo" ? (
                     <div className="space-y-2">
                       <div className="flex gap-2">
-                        <input type="text" value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder="URL da logo"/>
+                        <input type="text" value={configs[k]?.valor||""} onChange={e=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:e.target.value}}))} className="w-full bg-white/6 border border-white/12 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-purple-500/70 outline-none transition-all" placeholder="URL da imagem"/>
                         <label className="cursor-pointer bg-purple-700 hover:bg-purple-600 px-3 py-3 rounded-xl text-xs font-black whitespace-nowrap flex-shrink-0">
                           {uploadando?"⏳":"📤"}
-                          <input type="file" accept="image/*" className="hidden" onChange={e=>{if(e.target.files)uploadImagem(e.target.files[0],url=>setConfigs(prev=>({...prev,loja_logo:{...prev.loja_logo,valor:url}})));}}/>
+                          <input type="file" accept="image/*" className="hidden" onChange={e=>{if(e.target.files)uploadImagem(e.target.files[0],url=>setConfigs(prev=>({...prev,[k]:{...prev[k],valor:url}})));}}/>
                         </label>
                       </div>
-                      {configs[k]?.valor&&<img src={configs[k].valor} alt="Logo" className="h-12 object-contain rounded-lg bg-black/40 p-1"/>}
+                      {configs[k]?.valor&&<img src={configs[k].valor} alt={label} className="h-16 object-contain rounded-lg bg-black/40 p-1"/>}
                     </div>
                   ) : tipo==="color" ? (
                     <div className="flex gap-3 items-center">
