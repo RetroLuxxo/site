@@ -13,9 +13,19 @@ tar -xzf "$ARQUIVO" -C "$TEMP"
 PASTA=$(ls "$TEMP")
 SRC="$TEMP/$PASTA"
 
+echo "⏹️  Parando containers..."
+docker compose -f "$PASTA_SITE/docker-compose.yml" down
+
 echo "🐳 Subindo banco..."
 docker compose -f "$PASTA_SITE/docker-compose.yml" up -d db
-sleep 5
+
+echo "⏳ Aguardando banco ficar pronto..."
+until docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db \
+  psql -U admin postgres -c "SELECT 1" > /dev/null 2>&1; do
+  echo "   aguardando..."
+  sleep 2
+done
+echo "   ✅ Banco pronto!"
 
 echo "🗑️  Limpando banco existente..."
 docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db \
