@@ -170,6 +170,10 @@ https://github.com/RetroLuxxo/site
 CREDS
 
 echo ""
+# Subir containers
+echo -e "${YELLOW}Subindo containers...${NC}"
+cd ~/site && make up
+
 # Inserir configs iniciais no banco após subir
 echo -e "${YELLOW}Aguardando banco inicializar...${NC}"
 until docker exec ecommerce_db psql -U admin postgres -c "SELECT 1" > /dev/null 2>&1; do
