@@ -49,7 +49,9 @@ help:
 	@echo "$(GREEN)🛠️  UTILIDADES$(NC)"
 	@echo "  make importar-produtos CSV=arquivo.csv → Importa produtos"
 	@echo "  make backup-db       → Faz backup do banco"
-	@echo "  make limpar          → Remove imagens e volumes não usados\n  make tornar-admin admin=email → Torna usuário Admin\n  make tornar-superadmin admin=email → Torna Super Admin"
+	@echo "  make limpar          → Remove imagens e volumes não usados\n  make tornar-admin admin=email → Torna usuário Admin\n  make tornar-superadmin admin=email → Torna Super Admin
+  make backup          → Backup completo (banco + imagens + config)
+  make restore FILE=   → Restaura backup completo"
 	@echo ""
 
 # ============================================================
@@ -193,3 +195,9 @@ tornar-superadmin:
 	@echo "⭐ Tornando $(admin) Super Admin..."
 	docker exec ecommerce_db psql -U admin -d jc_games_db -c "UPDATE usuarios SET is_admin = TRUE, is_superadmin = TRUE WHERE email = '$(admin)';"
 	@echo "✅ $(admin) agora é Super Admin!"
+
+backup:
+	@bash backup.sh
+
+restore:
+	@bash restore.sh $(FILE)
