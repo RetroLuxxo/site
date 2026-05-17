@@ -172,11 +172,7 @@ CREDS
 echo ""
 # Inserir configs iniciais no banco após subir
 echo -e "${YELLOW}Aguardando banco inicializar...${NC}"
-until docker exec ecommerce_db psql -U admin postgres -c "SELECT 1" > /dev/null 2>&1; do
-  echo "   aguardando banco..."
-  sleep 2
-done
-echo -e "${GREEN}   ✅ Banco pronto!${NC}"
+sleep 5
 
 # Migrations de colunas e tabelas novas
 docker exec ecommerce_db psql -U admin -d jc_games_db -c "
