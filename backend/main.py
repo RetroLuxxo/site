@@ -128,12 +128,18 @@ def cadastro(dados: schemas.UsuarioCadastro, db: Session = Depends(get_db)):
     if existente:
         raise HTTPException(status_code=400, detail="Email já cadastrado")
     senha_hash = bcrypt.hashpw(dados.senha.encode(), bcrypt.gensalt()).decode()
+    # Promove automaticamente se for o email admin configurado
+    config_admin = db.query(models.Configuracao).filter(models.Configuracao.chave == "email_admin").first()
+    is_admin = bool(config_admin and config_admin.valor == dados.email)
+
     usuario = models.Usuario(
         email=dados.email,
         nome=dados.nome,
         telefone=dados.telefone,
         cpf=dados.cpf,
-        senha_hash=senha_hash
+        senha_hash=senha_hash,
+        is_admin=is_admin,
+        is_superadmin=is_admin
     )
     db.add(usuario)
     db.commit()
