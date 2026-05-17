@@ -36,7 +36,8 @@ docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db \
 echo "🗄️  Restaurando banco..."
 docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db \
   psql -U admin jc_games_db < "$SRC/banco.sql"
-echo "   ✅ Banco restaurado"
+docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db psql -U admin jc_games_db -c "ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS cupom_id INTEGER;"
+   echo "   ✅ Banco restaurado"
 
 if [ -d "$SRC/uploads" ]; then
   echo "🖼️  Restaurando imagens..."
