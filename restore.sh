@@ -1,8 +1,4 @@
 #!/bin/bash
-# ╔══════════════════════════════════════════╗
-# ║     JC Games Store — Restore Completo    ║
-# ╚══════════════════════════════════════════╝
-
 PASTA_SITE="$(cd "$(dirname "$0")" && pwd)"
 ARQUIVO="$1"
 
@@ -17,18 +13,21 @@ tar -xzf "$ARQUIVO" -C "$TEMP"
 PASTA=$(ls "$TEMP")
 SRC="$TEMP/$PASTA"
 
-# 1. Sobe o banco antes
-echo "🐳 Subindo containers..."
+echo "🐳 Subindo banco..."
 docker compose -f "$PASTA_SITE/docker-compose.yml" up -d db
 sleep 5
 
-# 2. Restaura o banco
+echo "🗑️  Limpando banco existente..."
+docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db \
+  psql -U admin postgres -c "DROP DATABASE IF EXISTS jc_games_db;"
+docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db \
+  psql -U admin postgres -c "CREATE DATABASE jc_games_db;"
+
 echo "🗄️  Restaurando banco..."
 docker compose -f "$PASTA_SITE/docker-compose.yml" exec -T db \
   psql -U admin jc_games_db < "$SRC/banco.sql"
 echo "   ✅ Banco restaurado"
 
-# 3. Restaura imagens
 if [ -d "$SRC/uploads" ]; then
   echo "🖼️  Restaurando imagens..."
   docker compose -f "$PASTA_SITE/docker-compose.yml" up -d backend
@@ -38,7 +37,6 @@ if [ -d "$SRC/uploads" ]; then
   echo "   ✅ Imagens restauradas"
 fi
 
-# 4. Sobe tudo
 docker compose -f "$PASTA_SITE/docker-compose.yml" up -d
 rm -rf "$TEMP"
 
