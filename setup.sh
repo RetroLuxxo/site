@@ -33,7 +33,7 @@ if [ ${#CREDS_FILES[@]} -gt 0 ]; then
     DB_PASS=$(grep "^Senha:" "$CREDS_FILE" | awk '{print $2}')
     EMAIL_USER=$(grep "^Conta:" "$CREDS_FILE" | awk '{print $2}')
     EMAIL_PASS=$(grep "^Senha de App:" "$CREDS_FILE" | sed 's/Senha de App: //')
-    EMAIL_ADMIN=$(grep "^Admin:" "$CREDS_FILE" | awk '{print $2}')
+    EMAIL_ADMIN=$(grep "^Email-Admin:" "$CREDS_FILE" | awk '{print $NF}')
     CLOUDINARY_CLOUD_NAME=$(grep "^Cloud Name:" "$CREDS_FILE" | awk '{print $3}')
     CLOUDINARY_PRESET=$(grep "^Preset:" "$CREDS_FILE" | awk '{print $2}')
     PAGBANK_TOKEN=$(grep "^Token:" "$CREDS_FILE" | awk '{print $2}')
@@ -173,7 +173,7 @@ EMAIL
 -----
 Conta:        $EMAIL_USER
 Senha de App: $EMAIL_PASS
-Admin:        $EMAIL_ADMIN
+Email-Admin:  $EMAIL_ADMIN
 
 CLOUDINARY
 ----------
