@@ -2,8 +2,8 @@
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
-
 clear
 echo -e "${BLUE}╔══════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║       JC GAMES STORE — Setup             ║${NC}"
@@ -12,12 +12,45 @@ echo ""
 
 IP_LOCAL=$(ip route get 1 | awk '{print $7}' | head -1)
 
+# ─── Credenciais salvas ──────────────────────────────────────────
+CREDS_FILES=($(ls ~/credenciais*.txt 2>/dev/null | sort -r))
+USE_SAVED=0
+
+if [ ${#CREDS_FILES[@]} -gt 0 ]; then
+  echo -e "${YELLOW}━━━ CREDENCIAIS SALVAS ━━━${NC}"
+  echo "Encontrei arquivos de credenciais:"
+  for i in "${!CREDS_FILES[@]}"; do
+    DATA=$(stat -c "%y" "${CREDS_FILES[$i]}" | cut -d. -f1)
+    echo "  $((i+1))) ${CREDS_FILES[$i]} ($DATA)"
+  done
+  echo "  $((${#CREDS_FILES[@]}+1))) Inserir novas credenciais"
+  echo ""
+  read -p "Escolha: " CREDS_CHOICE
+
+  IDX=$((CREDS_CHOICE-1))
+  if [ "$CREDS_CHOICE" != "$((${#CREDS_FILES[@]}+1))" ] && [ -n "${CREDS_FILES[$IDX]}" ]; then
+    CREDS_FILE="${CREDS_FILES[$IDX]}"
+    DB_PASS=$(grep "^Senha:" "$CREDS_FILE" | awk '{print $2}')
+    EMAIL_USER=$(grep "^Conta:" "$CREDS_FILE" | awk '{print $2}')
+    EMAIL_PASS=$(grep "^Senha de App:" "$CREDS_FILE" | sed 's/Senha de App: //')
+    EMAIL_ADMIN=$(grep "^Admin:" "$CREDS_FILE" | awk '{print $2}')
+    CLOUDINARY_CLOUD_NAME=$(grep "^Cloud Name:" "$CREDS_FILE" | awk '{print $3}')
+    CLOUDINARY_PRESET=$(grep "^Preset:" "$CREDS_FILE" | awk '{print $2}')
+    PAGBANK_TOKEN=$(grep "^Token:" "$CREDS_FILE" | awk '{print $2}')
+    PAGBANK_ENV=$(grep "^Ambiente:" "$CREDS_FILE" | tail -1 | awk '{print $2}')
+    JWT_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+    USE_SAVED=1
+    echo -e "${GREEN}✅ Credenciais carregadas!${NC}"
+    echo ""
+  fi
+fi
+# ────────────────────────────────────────────────────────────────
+
 echo -e "${YELLOW}Tipo de instalação:${NC}"
 echo "  1) Servidor local (rede interna)"
 echo "  2) VPS com domínio (produção)"
 read -p "Escolha (1 ou 2): " TIPO
 echo ""
-
 if [ "$TIPO" = "2" ]; then
     echo -e "${BLUE}━━━ DOMÍNIO ━━━${NC}"
     read -p "Domínio (ex: jcgames.com.br): " DOMINIO
@@ -33,39 +66,36 @@ else
 fi
 echo ""
 
-echo -e "${BLUE}━━━ BANCO DE DADOS ━━━${NC}"
-read -p "Senha do banco: " DB_PASS
-echo ""
-
-JWT_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-echo -e "${GREEN}✅ Chave JWT gerada!${NC}"
-echo ""
-
-echo -e "${BLUE}━━━ EMAIL (Gmail) ━━━${NC}"
-read -p "Seu email Gmail: " EMAIL_USER
-read -p "Senha de App (xxxx xxxx xxxx xxxx): " EMAIL_PASS
-read -p "Email do admin: " EMAIL_ADMIN
-echo ""
-
-echo -e "${BLUE}━━━ CLOUDINARY (upload de imagens) ━━━${NC}"
-read -p "Cloud Name (ex: drpfwdjfg): " CLOUDINARY_CLOUD_NAME
-read -p "Upload Preset (ex: jcgames_upload): " CLOUDINARY_PRESET
-echo ""
-
-echo -e "${BLUE}━━━ PAGBANK ━━━${NC}"
-read -p "Token PagBank: " PAGBANK_TOKEN
-echo "  1) sandbox (testes)"
-echo "  2) production (producao)"
-read -p "Ambiente (1 ou 2): " PAGBANK_CHOICE
-if [ "$PAGBANK_CHOICE" = "2" ]; then
-    PAGBANK_ENV="production"
-else
-    PAGBANK_ENV="sandbox"
+if [ $USE_SAVED -eq 0 ]; then
+  echo -e "${BLUE}━━━ BANCO DE DADOS ━━━${NC}"
+  read -p "Senha do banco: " DB_PASS
+  echo ""
+  JWT_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+  echo -e "${GREEN}✅ Chave JWT gerada!${NC}"
+  echo ""
+  echo -e "${BLUE}━━━ EMAIL (Gmail) ━━━${NC}"
+  read -p "Seu email Gmail: " EMAIL_USER
+  read -p "Senha de App (xxxx xxxx xxxx xxxx): " EMAIL_PASS
+  read -p "Email do admin: " EMAIL_ADMIN
+  echo ""
+  echo -e "${BLUE}━━━ CLOUDINARY (upload de imagens) ━━━${NC}"
+  read -p "Cloud Name (ex: drpfwdjfg): " CLOUDINARY_CLOUD_NAME
+  read -p "Upload Preset (ex: jcgames_upload): " CLOUDINARY_PRESET
+  echo ""
+  echo -e "${BLUE}━━━ PAGBANK ━━━${NC}"
+  read -p "Token PagBank: " PAGBANK_TOKEN
+  echo "  1) sandbox (testes)"
+  echo "  2) production (producao)"
+  read -p "Ambiente (1 ou 2): " PAGBANK_CHOICE
+  if [ "$PAGBANK_CHOICE" = "2" ]; then
+      PAGBANK_ENV="production"
+  else
+      PAGBANK_ENV="sandbox"
+  fi
 fi
+
 echo ""
-
 echo -e "${YELLOW}Gerando arquivos...${NC}"
-
 cat > docker-compose.yml << COMPOSE
 services:
   db:
@@ -159,10 +189,6 @@ JWT
 ---
 Chave: $JWT_KEY
 
-APOS SUBIR
-----------
-Rode: make tornar-superadmin admin=$EMAIL_ADMIN
-
 GITHUB
 ------
 https://github.com/RetroLuxxo/site
@@ -174,7 +200,7 @@ echo ""
 echo -e "${YELLOW}Aguardando banco inicializar...${NC}"
 sleep 5
 
-# Migrations de colunas e tabelas novas
+# Migrations
 docker exec ecommerce_db psql -U admin -d jc_games_db -c "
 ALTER TABLE produtos ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT TRUE;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS cupom_id INTEGER;
