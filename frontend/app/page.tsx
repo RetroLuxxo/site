@@ -497,6 +497,39 @@ export default function Home() {
               }} className="w-full bg-purple-700 hover:bg-purple-600 py-2.5 rounded-xl font-black text-xs mb-3 transition-all btn-press btn-dinamico">{pixCopiado?"✅ Copiado!":"📋 Copiar Código PIX"}</button>
               <p className="text-green-400 font-black text-lg mb-4">Total: R$ {pixData.total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
             </>):(<p className="text-gray-500 text-sm mb-4">Você receberá um email de confirmação.</p>)}
+            <button onClick={async ()=>{
+              const r = await fetch(`${API}/pedidos/${pedidoFinalizado}`, {headers: authHeaders()});
+              if(!r.ok) return;
+              const p = await r.json();
+              const itens = (typeof p.itens === "string" ? JSON.parse(p.itens) : p.itens) || [];
+              const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido #${p.id}</title>
+              <style>body{font-family:Arial,sans-serif;padding:20px;max-width:400px;margin:0 auto}
+              h2{border-bottom:2px solid #333;padding-bottom:8px}
+              .campo{margin:6px 0;font-size:14px}
+              .label{font-weight:bold;color:#555}
+              .itens{border:1px solid #ddd;border-radius:8px;padding:12px;margin:12px 0}
+              .item{padding:4px 0;border-bottom:1px solid #eee;font-size:13px}
+              .total{font-size:18px;font-weight:bold;text-align:right;margin-top:12px}
+              @media print{button{display:none}}</style></head>
+              <body>
+              <h2>📦 Pedido #${p.id}</h2>
+              <div class="campo"><span class="label">Cliente:</span> ${p.nome}</div>
+              <div class="campo"><span class="label">CPF:</span> ${p.cpf}</div>
+              <div class="campo"><span class="label">Telefone:</span> ${p.telefone}</div>
+              <div class="campo"><span class="label">Email:</span> ${p.email}</div>
+              <h3>📍 Endereço de Entrega</h3>
+              <div class="campo">${p.endereco}, ${p.numero} ${p.complemento||""}</div>
+              <div class="campo">${p.bairro} - ${p.cidade}/${p.estado}</div>
+              <div class="campo"><span class="label">CEP:</span> ${p.cep}</div>
+              <h3>🛍️ Itens</h3>
+              <div class="itens">${itens.map((i:any)=>`<div class="item">${i.quantidade}x Produto #${i.product_id} — R$ ${Number(i.preco_unitario).toFixed(2)}</div>`).join("")}</div>
+              <div class="campo"><span class="label">Frete:</span> ${p.frete_nome} — R$ ${Number(p.frete_preco).toFixed(2)} (${p.frete_prazo} dias)</div>
+              <div class="total">Total: R$ ${Number(p.total).toLocaleString("pt-BR",{minimumFractionDigits:2})}</div>
+              <br><button onclick="window.print()">🖨️ Imprimir</button>
+              </body></html>`;
+              const w = window.open("","_blank");
+              if(w){w.document.write(html);w.document.close();}
+            }} className="w-full bg-blue-700 hover:bg-blue-600 py-2.5 rounded-xl font-black text-xs mb-2 transition-all btn-press">📄 Baixar Comprovante / Etiqueta</button>
             <button onClick={()=>{setPedidoFinalizado(null);setPixData(null);}} className="w-full bg-white/6 border border-white/10 hover:bg-white/10 py-2.5 rounded-xl font-black text-sm transition-all btn-press">Continuar Comprando</button>
           </div>
         </div>
