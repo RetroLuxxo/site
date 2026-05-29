@@ -58,6 +58,19 @@ export default function Admin() {
   const [dadosUsuario, setDadosUsuario] = useState<UsuarioAdmin|null>(null);
   const [cupons, setCupons] = useState<Cupom[]>([]);
   const [novoCupom, setNovoCupom] = useState({codigo:"",desconto_pct:0,desconto_fixo:0,limite_uso:100});
+  const [lojaNome, setLojaNome] = useState("");
+  const [lojaLogo, setLojaLogo] = useState("");
+  const [lojaCorPrimaria, setLojaCorPrimaria] = useState("#8B2FC9");
+  const [lojaFonte, setLojaFonte] = useState("Orbitron");
+
+  useEffect(() => {
+    if(lojaFonte) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = `https://fonts.googleapis.com/css2?family=${lojaFonte.replace(/ /g,"+")}&display=swap`;
+      document.head.appendChild(link);
+    }
+  }, [lojaFonte]);
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [enviandoStatus, setEnviandoStatus] = useState(false);
   const [novoProduto, setNovoProduto] = useState({ nome: "", descricao: "", preco: "", imagem_url: "", estoque: "", peso_kg: "0.5", comprimento_cm: "15", largura_cm: "15", altura_cm: "15" });
@@ -129,6 +142,12 @@ export default function Admin() {
   const carregarDados = async (tk: string) => {
     setLoading(true);
     try {
+      const pubCfg: any = await fetch(`${API}/configuracoes/loja`).then(r => r.ok ? r.json() : {});
+      if(pubCfg.loja_nome) setLojaNome(pubCfg.loja_nome);
+      if(pubCfg.loja_logo) setLojaLogo(pubCfg.loja_logo);
+      if(pubCfg.loja_cor_primaria) setLojaCorPrimaria(pubCfg.loja_cor_primaria);
+      if(pubCfg.loja_fonte) setLojaFonte(pubCfg.loja_fonte);
+
       const [dash, peds, prods, cfgs] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers: H(tk) }).then(r => r.ok ? r.json() : null),
         fetch(`${API}/admin/pedidos`, { headers: H(tk) }).then(r => r.ok ? r.json() : []),
@@ -228,7 +247,7 @@ export default function Admin() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0c1a] text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    <div className="min-h-screen text-white" style={{fontFamily:`'${lojaFonte}',system-ui,sans-serif`,background:"#0a0c1a"}}>
       <style>{`
         .btn-press:active{transform:scale(0.97)}
         .glass{background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08)}
@@ -242,10 +261,12 @@ export default function Admin() {
       <nav className="glass border-b border-white/5 sticky top-0 z-50 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-xs font-black flex-shrink-0">JC</div>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 overflow-hidden" style={{background: lojaCorPrimaria}}>
+              {lojaLogo ? <img src={lojaLogo} alt="logo" className="w-full h-full object-contain p-0.5"/> : <span>{lojaNome ? lojaNome[0] : "A"}</span>}
+            </div>
             <div className="min-w-0">
-              <p className="font-black text-sm leading-tight"><span className="text-blue-400">JC GAMES</span> <span className="text-white">ADMIN</span></p>
-              <span className="text-[10px] bg-blue-600/80 px-1.5 py-0.5 rounded font-bold">PAINEL</span>
+              <p className="font-black text-sm leading-tight" style={{fontFamily: lojaFonte, color: lojaCorPrimaria}}>{lojaNome || "Admin"} <span className="text-white">ADMIN</span></p>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{background: lojaCorPrimaria + "80"}}>PAINEL</span>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
