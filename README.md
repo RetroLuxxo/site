@@ -36,6 +36,7 @@ sudo usermod -aG docker $USER
 newgrp docker
 sudo systemctl start docker
 sudo systemctl enable docker
+sudo apt install git make -y
 # Reinicie o terminal após este comando
 ```
 
