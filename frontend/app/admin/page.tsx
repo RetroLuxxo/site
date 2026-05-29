@@ -62,6 +62,10 @@ export default function Admin() {
   const [lojaLogo, setLojaLogo] = useState("");
   const [lojaCorPrimaria, setLojaCorPrimaria] = useState("#8B2FC9");
   const [lojaFonte, setLojaFonte] = useState("Orbitron");
+  const [lojaCorNome1, setLojaCorNome1] = useState("#8B2FC9");
+  const [lojaCorNome2, setLojaCorNome2] = useState("#ffffff");
+  const [lojaTamanhoNome, setLojaTamanhoNome] = useState(18);
+  const [lojaTamanhoLogo, setLojaTamanhoLogo] = useState(32);
 
   useEffect(() => {
     if(lojaFonte) {
@@ -147,6 +151,10 @@ export default function Admin() {
       if(pubCfg.loja_logo) setLojaLogo(pubCfg.loja_logo);
       if(pubCfg.loja_cor_primaria) setLojaCorPrimaria(pubCfg.loja_cor_primaria);
       if(pubCfg.loja_fonte) setLojaFonte(pubCfg.loja_fonte);
+      if(pubCfg.loja_cor_nome_loja) setLojaCorNome1(pubCfg.loja_cor_nome_loja);
+      if(pubCfg.loja_cor_nome_loja2) setLojaCorNome2(pubCfg.loja_cor_nome_loja2);
+      if(pubCfg.loja_tamanho_nome_loja) setLojaTamanhoNome(Number(pubCfg.loja_tamanho_nome_loja));
+      if(pubCfg.loja_tamanho_logo) setLojaTamanhoLogo(Number(pubCfg.loja_tamanho_logo));
 
       const [dash, peds, prods, cfgs] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers: H(tk) }).then(r => r.ok ? r.json() : null),
@@ -262,10 +270,10 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 overflow-hidden" style={{background: lojaCorPrimaria}}>
-              {lojaLogo ? <img src={lojaLogo} alt="logo" className="w-full h-full object-contain p-0.5"/> : <span>{lojaNome ? lojaNome[0] : "A"}</span>}
+              {lojaLogo ? <img src={lojaLogo} alt="logo" style={{width: lojaTamanhoLogo+"px", height: lojaTamanhoLogo+"px"}} className="object-contain p-0.5"/> : <span>{lojaNome ? lojaNome[0] : "A"}</span>}
             </div>
             <div className="min-w-0">
-              <p className="font-black text-sm leading-tight" style={{fontFamily: lojaFonte, color: lojaCorPrimaria}}>{lojaNome || "Admin"} <span className="text-white">ADMIN</span></p>
+              <p className="font-black leading-tight" style={{fontFamily: lojaFonte, fontSize: lojaTamanhoNome+"px"}}><span style={{color: lojaCorNome1}}>{lojaNome?.split(" ")[0] || "Admin"}</span> <span style={{color: lojaCorNome2}}>{lojaNome?.split(" ").slice(1).join(" ") || "ADMIN"}</span></p>
               <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{background: lojaCorPrimaria + "80"}}>PAINEL</span>
             </div>
           </div>
