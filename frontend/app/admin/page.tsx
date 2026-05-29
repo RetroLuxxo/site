@@ -346,9 +346,51 @@ export default function Admin() {
                         <p className="text-gray-600 text-xs">{p.cidade}/{p.estado}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${sBadge(p.status)}`}>
-                          {p.status.toUpperCase()}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${sBadge(p.status)}`}>
+                            {p.status.toUpperCase()}
+                          </span>
+                          <button onClick={(e)=>{
+                            e.stopPropagation();
+                            const it=Array.isArray(p.itens)?p.itens:(typeof p.itens==="string"?JSON.parse(p.itens):[]);
+                            const linhas = [
+                              "================================",
+                              "PEDIDO #"+p.id+" — "+p.status.toUpperCase(),
+                              "================================",
+                              "",
+                              "CLIENTE",
+                              "Nome: "+p.nome,
+                              "Email: "+p.email,
+                              "Tel: "+p.telefone,
+                              "",
+                              "ENDEREÇO DE ENTREGA",
+                              (p as any).endereco+", "+(p as any).numero+" "+((p as any).complemento||""),
+                              (p as any).bairro+" — "+p.cidade+"/"+p.estado,
+                              "CEP: "+(p as any).cep,
+                              "",
+                              "ITENS PARA SEPARAÇÃO",
+                              "--------------------------------",
+                              ...it.map((i:any)=>{
+                                const prod = produtos.find((pr:Produto)=>pr.id===i.product_id);
+                                return "• "+i.quantidade+"x "+(prod?prod.nome:"Produto #"+i.product_id)+" — R$ "+Number(i.preco_unitario).toFixed(2);
+                              }),
+                              "--------------------------------",
+                              "",
+                              "Frete: "+p.frete_nome+" — R$ "+Number((p as any).frete_preco||0).toFixed(2),
+                              p.codigo_rastreio?"Rastreio: "+p.codigo_rastreio:"",
+                              "",
+                              "TOTAL: R$ "+Number(p.total).toLocaleString("pt-BR",{minimumFractionDigits:2}),
+                              "================================",
+                            ].filter(l=>l!==undefined);
+                            const blob = new Blob([linhas.join("\n")], {type:"text/plain;charset=utf-8"});
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = "pedido_"+p.id+".txt";
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }} className="px-2 py-1 rounded-lg text-[10px] font-black bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 transition-all">📄</button>
+                        </div>
                         <p className="text-emerald-400 font-black text-sm">R$ {p.total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
                       </div>
                     </div>

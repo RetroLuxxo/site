@@ -752,3 +752,10 @@ def deletar_cupom(cupom_id: int, usuario = Depends(get_usuario_atual), db: Sessi
         db.delete(cupom)
         db.commit()
     return {"ok": True}
+
+@app.get("/pedidos/{pedido_id}", response_model=schemas.Pedido)
+def get_pedido(pedido_id: int, usuario = Depends(get_usuario_atual), db: Session = Depends(get_db)):
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id, models.Pedido.usuario_id == usuario.id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    return pedido
