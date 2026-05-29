@@ -12,9 +12,9 @@ CONFIRM=${CONFIRM:-S}
 
 cd "$PASTA_SITE"
 docker compose down -v --rmi all
+
 cd "$(dirname "$PASTA_SITE")"
 mv "$PASTA_SITE" "${PASTA_SITE}.bak_$(date +%Y%m%d_%H%M)"
-docker system prune -af --volumes
 
 git clone https://github.com/RetroLuxxo/site.git "$PASTA_SITE"
 cd "$PASTA_SITE"
