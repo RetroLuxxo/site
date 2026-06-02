@@ -48,6 +48,11 @@ export default function Home() {
   const [lojaCorNomeLoja2, setLojaCorNomeLoja2] = useState("#ffffff");
   const [lojaFonte, setLojaFonte] = useState("Orbitron");
   const [lojaLayout, setLojaLayout] = useState("default");
+  const [banners, setBanners] = useState<string[]>([]);
+  const [bannerAtivo, setBannerAtivo] = useState(0);
+  const [carrosselAtivo, setCarrosselAtivo] = useState(false);
+
+  // autoplay desativado — navegação manual
   const [lojaBannerUrl, setLojaBannerUrl] = useState("");
   const [lojaBannerTitulo, setLojaBannerTitulo] = useState("");
   const [lojaBannerSubtitulo, setLojaBannerSubtitulo] = useState("");
@@ -139,6 +144,13 @@ export default function Home() {
       }
         if(cfg.loja_layout) setLojaLayout(cfg.loja_layout);
         if(cfg.loja_banner_url) setLojaBannerUrl(cfg.loja_banner_url);
+        const bs: string[] = [];
+        for(let i=1;i<=5;i++){
+          if(cfg[`loja_banner_${i}_ativo`]==="true" && cfg[`loja_banner_${i}_url`])
+            bs.push(cfg[`loja_banner_${i}_url`]);
+        }
+        if(bs.length>0) setBanners(bs);
+        if(cfg.loja_banner_carrossel==="true") setCarrosselAtivo(true);
         if(cfg.loja_banner_titulo) setLojaBannerTitulo(cfg.loja_banner_titulo);
         if(cfg.loja_banner_subtitulo) setLojaBannerSubtitulo(cfg.loja_banner_subtitulo);
         setConfigsCarregadas(true);
@@ -188,6 +200,13 @@ export default function Home() {
         if(cfg.loja_banner_url) setLojaBannerUrl(cfg.loja_banner_url);
         if(cfg.loja_banner_titulo) setLojaBannerTitulo(cfg.loja_banner_titulo);
         if(cfg.loja_banner_subtitulo) setLojaBannerSubtitulo(cfg.loja_banner_subtitulo);
+        const bs: string[] = [];
+        for(let i=1;i<=5;i++){
+          if(cfg[`loja_banner_${i}_ativo`]==="true" && cfg[`loja_banner_${i}_url`])
+            bs.push(cfg[`loja_banner_${i}_url`]);
+        }
+        if(bs.length>0) setBanners(bs);
+        if(cfg.loja_banner_carrossel==="true") setCarrosselAtivo(true);
       }).catch(()=>{});
       setProdutos(data); setProdutosFiltrados(data); setLoading(false);
       const tk = localStorage.getItem("token");
@@ -448,13 +467,33 @@ export default function Home() {
       </div>
 
       <main className="w-full px-4 sm:px-6 pb-16">
-        {lojaLayout==="banner" && lojaBannerUrl && !busca && (
-          <div className="relative w-full rounded-2xl overflow-hidden mb-8">
-            <img src={lojaBannerUrl} alt="Banner" className="w-full object-contain"/>
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex flex-col justify-center px-8">
-              {lojaBannerTitulo && <h2 className="text-3xl sm:text-5xl font-black text-white mb-2">{lojaBannerTitulo}</h2>}
-              {lojaBannerSubtitulo && <p className="text-lg text-gray-200">{lojaBannerSubtitulo}</p>}
-            </div>
+        {lojaLayout==="banner" && (banners.length>0 || lojaBannerUrl) && !busca && (
+          <div className="relative w-full rounded-2xl overflow-hidden mb-8 group">
+            <img
+              src={banners.length>0 ? banners[bannerAtivo] : lojaBannerUrl}
+              alt="Banner"
+              className="w-full object-contain transition-opacity duration-500"
+            />
+            {banners.length>1 && (
+              <>
+                <button onClick={()=>setBannerAtivo(p=>(p-1+banners.length)%banners.length)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-purple-700 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl font-black hover:scale-110 transition-all duration-200 z-10 shadow-lg">‹</button>
+                <button onClick={()=>setBannerAtivo(p=>(p+1)%banners.length)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-purple-700 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl font-black hover:scale-110 transition-all duration-200 z-10 shadow-lg">›</button>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                  {banners.map((_,i)=>(
+                    <button key={i} onClick={()=>setBannerAtivo(i)}
+                      className={`w-2 h-2 rounded-full transition-all ${i===bannerAtivo?"bg-white scale-125":"bg-white/50"}`}/>
+                  ))}
+                </div>
+              </>
+            )}
+            {lojaBannerTitulo && (
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex flex-col justify-center px-8">
+                <h2 className="text-3xl sm:text-5xl font-black text-white mb-2">{lojaBannerTitulo}</h2>
+                {lojaBannerSubtitulo && <p className="text-lg text-gray-200">{lojaBannerSubtitulo}</p>}
+              </div>
+            )}
           </div>
         )}
         {loading?(

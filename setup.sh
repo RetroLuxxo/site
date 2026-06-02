@@ -252,6 +252,17 @@ INSERT INTO configuracoes (chave, valor, descricao) VALUES
 ('loja_fonte', 'Orbitron', 'Fonte Google Fonts'),
 ('loja_layout', 'default', 'Layout da loja: default ou banner'),
 ('loja_banner_url', '', 'URL da imagem do banner'),
+('loja_banner_1_url', '', 'Banner 1 URL'),
+('loja_banner_1_ativo', 'false', 'Banner 1 ativo'),
+('loja_banner_2_url', '', 'Banner 2 URL'),
+('loja_banner_2_ativo', 'false', 'Banner 2 ativo'),
+('loja_banner_3_url', '', 'Banner 3 URL'),
+('loja_banner_3_ativo', 'false', 'Banner 3 ativo'),
+('loja_banner_4_url', '', 'Banner 4 URL'),
+('loja_banner_4_ativo', 'false', 'Banner 4 ativo'),
+('loja_banner_5_url', '', 'Banner 5 URL'),
+('loja_banner_5_ativo', 'false', 'Banner 5 ativo'),
+('loja_banner_carrossel', 'false', 'Carrossel ativado'),
 ('loja_banner_titulo', '', 'Título do banner'),
 ('loja_banner_subtitulo', '', 'Subtítulo do banner')
 ON CONFLICT (chave) DO NOTHING;

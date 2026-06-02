@@ -66,6 +66,10 @@ export default function Admin() {
   const [lojaCorNome2, setLojaCorNome2] = useState("#ffffff");
   const [lojaTamanhoNome, setLojaTamanhoNome] = useState(18);
   const [lojaTamanhoLogo, setLojaTamanhoLogo] = useState(32);
+  const [bannerCarrossel, setBannerCarrossel] = useState(false);
+  const [bannersConfig, setBannersConfig] = useState<{url:string,ativo:boolean}[]>(
+    Array(5).fill(null).map(()=>({url:"",ativo:false}))
+  );
 
   useEffect(() => {
     if(lojaFonte) {
@@ -155,6 +159,11 @@ export default function Admin() {
       if(pubCfg.loja_cor_nome_loja2) setLojaCorNome2(pubCfg.loja_cor_nome_loja2);
       if(pubCfg.loja_tamanho_nome_loja) setLojaTamanhoNome(Number(pubCfg.loja_tamanho_nome_loja));
       if(pubCfg.loja_tamanho_logo) setLojaTamanhoLogo(Number(pubCfg.loja_tamanho_logo));
+      if(pubCfg.loja_banner_carrossel) setBannerCarrossel(pubCfg.loja_banner_carrossel==="true");
+      setBannersConfig(Array(5).fill(null).map((_,i)=>({
+        url: pubCfg[`loja_banner_${i+1}_url`]||"",
+        ativo: pubCfg[`loja_banner_${i+1}_ativo`]==="true"
+      })));
 
       const [dash, peds, prods, cfgs] = await Promise.all([
         fetch(`${API}/admin/dashboard`, { headers: H(tk) }).then(r => r.ok ? r.json() : null),
@@ -178,6 +187,11 @@ export default function Admin() {
     try {
       const payload: Record<string,string> = {};
       Object.entries(configs).forEach(([k,v]) => { payload[k] = v.valor; });
+      payload["loja_banner_carrossel"] = bannerCarrossel ? "true" : "false";
+      for(let i=0;i<5;i++){
+        payload[`loja_banner_${i+1}_url`] = bannersConfig[i]?.url||"";
+        payload[`loja_banner_${i+1}_ativo`] = bannersConfig[i]?.ativo?"true":"false";
+      }
       const r = await fetch(`${API}/admin/configuracoes`, { method: "PUT", headers: H(token), body: JSON.stringify(payload) });
       if (r.ok) showMsg("✅ Configurações salvas!");
       else showMsg("❌ Erro ao salvar");
@@ -576,6 +590,7 @@ export default function Admin() {
               {k:"loja_descricao",label:"Descrição",tipo:"text"},
               {k:"loja_layout",label:"Layout",tipo:"layout"},
               {k:"loja_banner_url",label:"Imagem do Banner",tipo:"logo"},
+              {k:"loja_banner_carrossel",label:"Carrossel de Banners",tipo:"carrossel"},
 
             ]},
             {titulo:"🎨 Visual", chaves:[
@@ -617,6 +632,33 @@ export default function Admin() {
                           className={`flex-1 py-3 rounded-xl font-black text-sm border transition-all ${configs[k]?.valor===l?"bg-purple-700 border-purple-500 text-white":"bg-white/5 border-white/10 text-gray-400 hover:border-white/20"}`}>
                           {l==="default"?"📦 Default":"🖼️ Banner"}
                         </button>
+                      ))}
+                    </div>
+                  ) : tipo==="carrossel" ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">Auto-play (carrossel)</span>
+                        <div onClick={()=>setBannerCarrossel(p=>!p)} className={`w-10 h-5 rounded-full transition-colors cursor-pointer ${bannerCarrossel?"bg-purple-600":"bg-white/20"}`}>
+                          <div className={`w-4 h-4 bg-white rounded-full mt-0.5 transition-transform ${bannerCarrossel?"translate-x-5":"translate-x-1"}`}/>
+                        </div>
+                      </div>
+                      {[0,1,2,3,4].map(i=>(
+                        <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-300">Banner {i+1}</span>
+                            <button type="button" onClick={()=>{const idx=i;setBannersConfig(prev=>{const next=[...prev];next[idx]={...next[idx],ativo:!next[idx].ativo};return next;});}} className={`w-8 h-4 rounded-full transition-colors cursor-pointer ${bannersConfig[i]?.ativo?"bg-purple-600":"bg-white/20"}`}>
+                              <div className={`w-3 h-3 bg-white rounded-full mt-0.5 transition-transform ${bannersConfig[i]?.ativo?"translate-x-4":"translate-x-0.5"}`}/>
+                            </button>
+                          </div>
+                          {bannersConfig[i]?.url&&<img src={bannersConfig[i].url} className="w-full h-16 object-cover rounded"/>}
+                          <div className="flex gap-2">
+                            <input value={bannersConfig[i]?.url||""} onChange={e=>setBannersConfig(p=>p.map((b,j)=>j===i?{...b,url:e.target.value}:b))} placeholder="URL do banner" className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white"/>
+                            <label className="cursor-pointer bg-purple-700 hover:bg-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold">
+                              {uploadando?"⏳":"📤"}
+                              <input type="file" accept="image/*" className="hidden" onChange={e=>{if(e.target.files)uploadImagem(e.target.files[0],url=>setBannersConfig(p=>p.map((b,j)=>j===i?{...b,url}:b)));}}/>
+                            </label>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   ) : tipo==="fonte" ? (

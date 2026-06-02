@@ -640,7 +640,7 @@ def atualizar_fotos(produto_id: int, dados: dict, token: str = Depends(get_usuar
 # ============================================================
 @app.get("/configuracoes/loja")
 def configs_publicas(db: Session = Depends(get_db)):
-    chaves = ["loja_nome", "loja_descricao", "loja_logo", "loja_cor_primaria", "loja_cor_fundo", "loja_cor_botao", "loja_cor_texto", "loja_transparencia_cards", "loja_tamanho_fonte", "loja_tamanho_fonte_botao", "loja_cor_texto_botao", "loja_tamanho_logo", "loja_tamanho_nome_loja", "loja_cor_nome_loja", "loja_cor_nome_loja2", "loja_fonte", "loja_layout", "loja_banner_url", "loja_banner_titulo", "loja_banner_subtitulo"]
+    chaves = ["loja_nome", "loja_descricao", "loja_logo", "loja_cor_primaria", "loja_cor_fundo", "loja_cor_botao", "loja_cor_texto", "loja_transparencia_cards", "loja_tamanho_fonte", "loja_tamanho_fonte_botao", "loja_cor_texto_botao", "loja_tamanho_logo", "loja_tamanho_nome_loja", "loja_cor_nome_loja", "loja_cor_nome_loja2", "loja_fonte", "loja_layout", "loja_banner_url", "loja_banner_titulo", "loja_banner_subtitulo", "loja_banner_carrossel", "loja_banner_1_url", "loja_banner_1_ativo", "loja_banner_2_url", "loja_banner_2_ativo", "loja_banner_3_url", "loja_banner_3_ativo", "loja_banner_4_url", "loja_banner_4_ativo", "loja_banner_5_url", "loja_banner_5_ativo"]
     configs = db.query(models.Configuracao).filter(models.Configuracao.chave.in_(chaves)).all()
     return {c.chave: c.valor for c in configs}
 @app.get("/admin/configuracoes")
