@@ -415,7 +415,7 @@ export default function Home() {
         <div className="w-full px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
             <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
-            <span className="font-black tracking-tight" style={{fontSize:`clamp(18px,4vw,${lojaTamanhoNomeLoja}px)`}}>
+            <span className="font-black tracking-tight" style={{fontSize:`clamp(14px,3vw,${lojaTamanhoFonte}px)`}}>
               <span style={{color:lojaCorNomeLoja}}>{lojaNome.split(" ").slice(0,-1).join(" ")||lojaNome}</span>
               {lojaNome.split(" ").length>1&&<span style={{color:lojaCorNomeLoja2}}> {lojaNome.split(" ").slice(-1)[0]}</span>}
             </span>
@@ -460,7 +460,7 @@ export default function Home() {
 
       <div className="w-full px-4 sm:px-6 py-6 sm:py-8 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-black tracking-tight" style={{fontSize:`clamp(18px,4vw,${lojaTamanhoNomeLoja}px)`}}>{lojaDesc.includes(" de ")?(lojaDesc.split(" de ")[0]+" de "):lojaDesc} {lojaDesc.includes(" de ")?<span className="text-purple-400">{lojaDesc.split(" de ")[1]}</span>:""}</h1>
+          <h1 className="font-black tracking-tight" style={{fontSize:`clamp(14px,3vw,${lojaTamanhoFonte}px)`}}>{lojaDesc.includes(" de ")?(lojaDesc.split(" de ")[0]+" de "):lojaDesc} {lojaDesc.includes(" de ")?<span className="text-purple-400">{lojaDesc.split(" de ")[1]}</span>:""}</h1>
           <p className="text-gray-500 text-sm mt-0.5">{produtosFiltrados.length} produto{produtosFiltrados.length!==1?"s":""} disponível{produtosFiltrados.length!==1?"s":""}</p>
         </div>
         {busca&&<button onClick={()=>setBusca("")} className="text-sm text-purple-400 hover:text-blue-300 transition-all">✕ Limpar</button>}
