@@ -130,6 +130,13 @@ export default function Home() {
         if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
         if(cfg.loja_cor_nome_loja2) setLojaCorNomeLoja2(cfg.loja_cor_nome_loja2);
         if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
+      if(cfg.loja_nome) document.title = cfg.loja_nome;
+      if(cfg.loja_logo) {
+        const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement("link");
+        link.rel = "icon";
+        link.href = cfg.loja_logo;
+        document.head.appendChild(link);
+      }
         if(cfg.loja_layout) setLojaLayout(cfg.loja_layout);
         if(cfg.loja_banner_url) setLojaBannerUrl(cfg.loja_banner_url);
         if(cfg.loja_banner_titulo) setLojaBannerTitulo(cfg.loja_banner_titulo);
@@ -170,6 +177,13 @@ export default function Home() {
         if(cfg.loja_cor_nome_loja) setLojaCorNomeLoja(cfg.loja_cor_nome_loja);
         if(cfg.loja_cor_nome_loja2) setLojaCorNomeLoja2(cfg.loja_cor_nome_loja2);
         if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
+      if(cfg.loja_nome) document.title = cfg.loja_nome;
+      if(cfg.loja_logo) {
+        const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement("link");
+        link.rel = "icon";
+        link.href = cfg.loja_logo;
+        document.head.appendChild(link);
+      }
         if(cfg.loja_layout) setLojaLayout(cfg.loja_layout);
         if(cfg.loja_banner_url) setLojaBannerUrl(cfg.loja_banner_url);
         if(cfg.loja_banner_titulo) setLojaBannerTitulo(cfg.loja_banner_titulo);
