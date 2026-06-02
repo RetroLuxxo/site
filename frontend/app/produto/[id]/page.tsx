@@ -19,6 +19,31 @@ export default function ProdutoPage() {
   const [adicionado, setAdicionado] = useState(false);
   const [carrinhoAberto, setCarrinhoAberto] = useState(false);
   const [carrinho, setCarrinho] = useState<{produto:Produto;quantidade:number}[]>([]);
+  const [lojaNome, setLojaNome] = useState("JC GAMES STORE");
+  const [lojaLogo, setLojaLogo] = useState("/favicon.png");
+  const [lojaCorPrimaria, setLojaCorPrimaria] = useState("#8B2FC9");
+  const [lojaFonte, setLojaFonte] = useState("Orbitron");
+  const [lojaCorNome1, setLojaCorNome1] = useState("#8B2FC9");
+  const [lojaCorNome2, setLojaCorNome2] = useState("#ffffff");
+  const [lojaTamanhoNome, setLojaTamanhoNome] = useState(18);
+  const [lojaTamanhoLogo, setLojaTamanhoLogo] = useState(32);
+
+  useEffect(() => {
+    fetch(`${API}/configuracoes/loja`).then(r=>r.ok?r.json():{}).then((cfg:any)=>{
+      if(cfg.loja_nome) setLojaNome(cfg.loja_nome);
+      if(cfg.loja_logo) setLojaLogo(cfg.loja_logo);
+      if(cfg.loja_cor_primaria) setLojaCorPrimaria(cfg.loja_cor_primaria);
+      if(cfg.loja_fonte) setLojaFonte(cfg.loja_fonte);
+      if(cfg.loja_cor_nome_loja) setLojaCorNome1(cfg.loja_cor_nome_loja);
+      if(cfg.loja_cor_nome_loja2) setLojaCorNome2(cfg.loja_cor_nome_loja2);
+      if(cfg.loja_tamanho_nome_loja) setLojaTamanhoNome(Number(cfg.loja_tamanho_nome_loja));
+      if(cfg.loja_tamanho_logo) setLojaTamanhoLogo(Number(cfg.loja_tamanho_logo));
+      const link=document.createElement("link");
+      link.rel="stylesheet";
+      link.href=`https://fonts.googleapis.com/css2?family=${(cfg.loja_fonte||"Orbitron").replace(/ /g,"+")}&display=swap`;
+      document.head.appendChild(link);
+    });
+  }, []);
 
   useEffect(() => {
     const tk = localStorage.getItem("token");
@@ -156,12 +181,12 @@ export default function ProdutoPage() {
   );
 
   return (
-    <div className="min-h-screen text-white" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"linear-gradient(135deg,#0a0010 0%,#130020 50%,#0a0010 100%)"}}>
+    <div className="min-h-screen text-white" style={{fontFamily:`'${lojaFonte}',system-ui,sans-serif`,background:"linear-gradient(135deg,#0a0010 0%,#130020 50%,#0a0010 100%)"}}>
       <header className="sticky top-0 z-50" style={{background:"rgba(10,0,20,0.90)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(139,47,201,0.2)"}}>
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-4">
           <a href="/" className="flex items-center gap-2">
-            <img src="/favicon.png" alt="JC Games" className="w-8 h-8 object-contain rounded-lg"/>
-            <span className="font-black text-lg"><span className="text-purple-400">JC GAMES</span><span className="text-white/90"> STORE</span></span>
+            <img src={lojaLogo} alt="logo" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}} className="object-contain rounded-lg"/>
+            <span className="font-black" style={{fontFamily:lojaFonte,fontSize:lojaTamanhoNome+"px"}}><span style={{color:lojaCorNome1}}>{lojaNome?.split(" ")[0]}</span><span style={{color:lojaCorNome2}}> {lojaNome?.split(" ").slice(1).join(" ")}</span></span>
           </a>
           <a href="/" className="ml-4 text-sm text-gray-400 hover:text-purple-400 transition-all">← Voltar</a>
           <div className="ml-auto">
