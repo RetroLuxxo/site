@@ -415,7 +415,7 @@ export default function Home() {
         <div className="w-full px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2 flex-shrink-0">
             <img src={lojaLogo} alt={lojaNome} className="object-contain rounded-lg" style={{width:lojaTamanhoLogo+"px",height:lojaTamanhoLogo+"px"}}/>
-            <span className="font-black tracking-tight" style={{fontSize:`clamp(14px,3vw,${lojaTamanhoFonte}px)`}}>
+            <span className="font-black tracking-tight" style={{fontSize:`clamp(14px,3vw,${lojaTamanhoNomeLoja}px)`}}>
               <span style={{color:lojaCorNomeLoja}}>{lojaNome.split(" ").slice(0,-1).join(" ")||lojaNome}</span>
               {lojaNome.split(" ").length>1&&<span style={{color:lojaCorNomeLoja2}}> {lojaNome.split(" ").slice(-1)[0]}</span>}
             </span>
@@ -477,9 +477,9 @@ export default function Home() {
             {banners.length>1 && (
               <>
                 <button onClick={()=>setBannerAtivo(p=>(p-1+banners.length)%banners.length)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-purple-700 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl font-black hover:scale-110 transition-all duration-200 z-10 shadow-lg">‹</button>
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-purple-700 text-white rounded-full w-8 h-8 sm:w-14 sm:h-14 flex items-center justify-center text-lg sm:text-3xl font-black hover:scale-110 transition-all duration-200 z-10 shadow-lg opacity-70 sm:opacity-100">‹</button>
                 <button onClick={()=>setBannerAtivo(p=>(p+1)%banners.length)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-purple-700 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl font-black hover:scale-110 transition-all duration-200 z-10 shadow-lg">›</button>
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-purple-700 text-white rounded-full w-8 h-8 sm:w-14 sm:h-14 flex items-center justify-center text-lg sm:text-3xl font-black hover:scale-110 transition-all duration-200 z-10 shadow-lg opacity-70 sm:opacity-100">›</button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                   {banners.map((_,i)=>(
                     <button key={i} onClick={()=>setBannerAtivo(i)}
